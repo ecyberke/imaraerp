@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DummyRecordController;
 use App\Http\Controllers\InvitationController;
@@ -46,6 +47,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/mfa/setup', [MfaController::class, 'setup']);
     Route::post('/mfa/confirm', [MfaController::class, 'confirm']);
+
+    // Revokes every other Sanctum token on success (§1.1).
+    Route::patch('/account/password', [AccountController::class, 'changePassword']);
 
     // 'mfa' gates creation for Finance/Admin roles without MFA enrolled
     // (§1.1); 'idempotent' honors an optional Idempotency-Key header

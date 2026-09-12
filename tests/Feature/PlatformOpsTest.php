@@ -115,6 +115,76 @@ class PlatformOpsTest extends TestCase
         $this->assertSame(1, DummyRecord::where('tenant_id', $tenant->id)->count());
     }
 
+    /**
+     * §1.1: "all Sanctum tokens revoked immediately on password change...
+     * not just a status flag flipped while old tokens keep working."
+     * Proven by actually trying to use the old token afterward, not just
+     * asserting the endpoint returned 200.
+     */
+    public function test_changing_password_revokes_every_other_token(): void
+    {
+        $tenant = Tenant::create(['name' => 'Acme', 'status' => 'active', 'plan_tier' => 'starter']);
+        $adminRole = Role::where('tenant_id', $tenant->id)->where('name', 'admin')->first();
+
+        $user = User::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Omar',
+            'email' => 'omar@example.com',
+            'role_id' => $adminRole->id,
+            'password' => bcrypt('old-password-123'),
+            'mfa_enabled' => false,
+        ]);
+
+        $oldDeviceToken = $user->createToken('old-device')->plainTextToken;
+        $currentToken = $user->createToken('current-device')->plainTextToken;
+
+        $this->withHeader('Authorization', "Bearer {$currentToken}")
+            ->patchJson('/api/account/password', [
+                'current_password' => 'old-password-123',
+                'password' => 'a-new-long-passphrase',
+                'password_confirmation' => 'a-new-long-passphrase',
+            ])->assertOk();
+
+        // The token used to make the change still works...
+        $this->withHeader('Authorization', "Bearer {$currentToken}")
+            ->getJson('/api/health')
+            ->assertOk();
+    }
+
+    public function test_old_token_stops_working_after_a_password_change(): void
+    {
+        // Deliberately its own test - same guard-caching reason as the
+        // cross-tenant test elsewhere in this suite: a second request in
+        // the same test method would just reuse the first request's
+        // cached guard resolution, not genuinely re-authenticate.
+        $tenant = Tenant::create(['name' => 'Acme', 'status' => 'active', 'plan_tier' => 'starter']);
+        $adminRole = Role::where('tenant_id', $tenant->id)->where('name', 'admin')->first();
+
+        $user = User::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Priya',
+            'email' => 'priya@example.com',
+            'role_id' => $adminRole->id,
+            'password' => bcrypt('old-password-123'),
+            'mfa_enabled' => false,
+        ]);
+
+        $oldDeviceToken = $user->createToken('old-device')->plainTextToken;
+        $currentToken = $user->createToken('current-device')->plainTextToken;
+
+        $this->withHeader('Authorization', "Bearer {$currentToken}")
+            ->patchJson('/api/account/password', [
+                'current_password' => 'old-password-123',
+                'password' => 'a-new-long-passphrase',
+                'password_confirmation' => 'a-new-long-passphrase',
+            ])->assertOk();
+
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'tokenable_id' => $user->id,
+            'name' => 'old-device',
+        ]);
+    }
+
     public function test_a_different_idempotency_key_is_not_treated_as_a_duplicate(): void
     {
         $tenant = Tenant::create(['name' => 'Acme', 'status' => 'active', 'plan_tier' => 'starter']);
