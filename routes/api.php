@@ -2,12 +2,16 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DummyRecordController;
+use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MfaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// Rate-limited auth endpoint (architecture §1.1's security baseline).
+// Rate-limited auth endpoints (architecture §1.1's security baseline) -
+// both unauthenticated by design (login has no session yet; accepting an
+// invitation is how the account it would log into first gets created).
 Route::post('/auth/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept'])->middleware('throttle:5,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/health', function (Request $request) {
