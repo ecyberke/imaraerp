@@ -48,8 +48,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/mfa/confirm', [MfaController::class, 'confirm']);
 
     // 'mfa' gates creation for Finance/Admin roles without MFA enrolled
-    // (§1.1) - the pattern every real financial-entity mutation route
-    // reuses from ledger-core onward.
-    Route::post('/dummy-records', [DummyRecordController::class, 'store'])->middleware('mfa');
+    // (§1.1); 'idempotent' honors an optional Idempotency-Key header
+    // (§1.1/§3.10) - both the pattern every real financial-entity
+    // mutation route reuses from ledger-core onward.
+    Route::post('/dummy-records', [DummyRecordController::class, 'store'])->middleware(['mfa', 'idempotent']);
     Route::get('/dummy-records/{dummyRecord}', [DummyRecordController::class, 'show']);
 });

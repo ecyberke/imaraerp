@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\DummyRecord;
+use App\Models\Role;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Models\UserInvitation;
 use App\Services\TenantProvisioningService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -77,5 +80,65 @@ class PlatformOpsTest extends TestCase
 
         $this->assertDatabaseMissing('user_invitations', ['id' => $expired->id]);
         $this->assertDatabaseHas('user_invitations', ['id' => $stillValid->id]);
+    }
+
+    /**
+     * §1.1/§3.10: a repeated request carrying the same Idempotency-Key
+     * returns the original response rather than re-executing the
+     * mutation - proven here by asserting only one DummyRecord exists
+     * after two identically-keyed POSTs, not just that both calls "look"
+     * successful.
+     */
+    public function test_repeated_request_with_the_same_idempotency_key_does_not_double_post(): void
+    {
+        $tenant = Tenant::create(['name' => 'Acme', 'status' => 'active', 'plan_tier' => 'starter']);
+        $salesRole = Role::where('tenant_id', $tenant->id)->where('name', 'sales')->first();
+
+        $user = User::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Liam',
+            'email' => 'liam@example.com',
+            'role_id' => $salesRole->id,
+            'password' => bcrypt('password123'),
+            'mfa_enabled' => false,
+        ]);
+
+        $token = $user->createToken('test')->plainTextToken;
+        $headers = ['Authorization' => "Bearer {$token}", 'Idempotency-Key' => 'dedupe-key-1'];
+
+        $first = $this->withHeaders($headers)->postJson('/api/dummy-records', ['name' => 'First attempt']);
+        $first->assertCreated();
+
+        $second = $this->withHeaders($headers)->postJson('/api/dummy-records', ['name' => 'Should be ignored']);
+        $second->assertCreated()->assertJsonPath('id', $first->json('id'));
+
+        $this->assertSame(1, DummyRecord::where('tenant_id', $tenant->id)->count());
+    }
+
+    public function test_a_different_idempotency_key_is_not_treated_as_a_duplicate(): void
+    {
+        $tenant = Tenant::create(['name' => 'Acme', 'status' => 'active', 'plan_tier' => 'starter']);
+        $salesRole = Role::where('tenant_id', $tenant->id)->where('name', 'sales')->first();
+
+        $user = User::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Nia',
+            'email' => 'nia@example.com',
+            'role_id' => $salesRole->id,
+            'password' => bcrypt('password123'),
+            'mfa_enabled' => false,
+        ]);
+
+        $token = $user->createToken('test')->plainTextToken;
+
+        $this->withHeaders(['Authorization' => "Bearer {$token}", 'Idempotency-Key' => 'key-a'])
+            ->postJson('/api/dummy-records', ['name' => 'A'])
+            ->assertCreated();
+
+        $this->withHeaders(['Authorization' => "Bearer {$token}", 'Idempotency-Key' => 'key-b'])
+            ->postJson('/api/dummy-records', ['name' => 'B'])
+            ->assertCreated();
+
+        $this->assertSame(2, DummyRecord::where('tenant_id', $tenant->id)->count());
     }
 }

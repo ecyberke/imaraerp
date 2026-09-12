@@ -3,6 +3,7 @@
 use App\Exceptions\NoOpenAccountingPeriodException;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\AssignCorrelationId;
+use App\Http\Middleware\EnsureIdempotent;
 use App\Http\Middleware\EnsureMfaForSensitiveRoles;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -32,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // CSRF-cookie semantics this project deliberately doesn't use.
         $middleware->alias([
             'mfa' => EnsureMfaForSensitiveRoles::class,
+            'idempotent' => EnsureIdempotent::class,
         ]);
 
         // Structured logging with a correlation ID (§1.1), on every request.
