@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
             $table->string('email');
-            $table->string('role')->nullable();
+            $table->foreignId('role_id')->nullable()->constrained();
             $table->unsignedBigInteger('invited_by')->nullable();
             $table->string('token')->unique();
             $table->timestamp('expires_at');

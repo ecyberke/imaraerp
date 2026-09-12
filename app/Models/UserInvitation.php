@@ -14,7 +14,7 @@ class UserInvitation extends Model
     protected $fillable = [
         'tenant_id',
         'email',
-        'role',
+        'role_id',
         'invited_by',
         'token',
         'expires_at',
@@ -25,4 +25,14 @@ class UserInvitation extends Model
         'expires_at' => 'datetime',
         'accepted_at' => 'datetime',
     ];
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function tenant()
+    {
+        return $this->belongsTo(Tenant::class);
+    }
 }

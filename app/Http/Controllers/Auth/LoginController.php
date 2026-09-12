@@ -33,7 +33,7 @@ class LoginController
                 'tenant_id' => $user->tenant_id,
                 'email' => $user->email,
                 'name' => $user->name,
-                'role' => $user->role,
+                'role' => $user->role?->name,
             ],
         ]);
     }

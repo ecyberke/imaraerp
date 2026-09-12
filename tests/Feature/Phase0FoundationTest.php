@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\UserInvitation;
@@ -20,10 +21,12 @@ class Phase0FoundationTest extends TestCase
             'plan_tier' => 'growth',
         ]);
 
+        $adminRole = Role::where('name', 'admin')->first();
+
         $invitation = UserInvitation::create([
             'tenant_id' => $tenant->id,
             'email' => 'admin@acme.test',
-            'role' => 'admin',
+            'role_id' => $adminRole->id,
             'invited_by' => 1,
             'token' => 'invite-token-123',
             'expires_at' => now()->addDays(7),
@@ -33,16 +36,26 @@ class Phase0FoundationTest extends TestCase
         $this->assertDatabaseHas('user_invitations', ['id' => $invitation->id, 'tenant_id' => $tenant->id]);
     }
 
+    public function test_role_catalog_is_seeded(): void
+    {
+        $this->assertSame(9, Role::count());
+        $this->assertNotNull(Role::where('name', 'admin')->first());
+        $this->assertNotNull(Role::where('name', 'finance')->first());
+        $this->assertNotNull(Role::where('name', 'site_supervisor')->first());
+    }
+
     public function test_users_are_tenant_scoped(): void
     {
         $tenantA = Tenant::create(['name' => 'Tenant A', 'status' => 'active', 'plan_tier' => 'starter']);
         $tenantB = Tenant::create(['name' => 'Tenant B', 'status' => 'active', 'plan_tier' => 'starter']);
+        $adminRole = Role::where('name', 'admin')->first();
+        $financeRole = Role::where('name', 'finance')->first();
 
         $userA = User::create([
             'tenant_id' => $tenantA->id,
             'name' => 'Alice',
             'email' => 'alice@example.com',
-            'role' => 'admin',
+            'role_id' => $adminRole->id,
             'password' => bcrypt('password123'),
             'mfa_enabled' => false,
         ]);
@@ -51,7 +64,7 @@ class Phase0FoundationTest extends TestCase
             'tenant_id' => $tenantB->id,
             'name' => 'Bob',
             'email' => 'bob@example.com',
-            'role' => 'finance',
+            'role_id' => $financeRole->id,
             'password' => bcrypt('password123'),
             'mfa_enabled' => true,
         ]);
@@ -63,12 +76,13 @@ class Phase0FoundationTest extends TestCase
     public function test_bearer_login_returns_access_token(): void
     {
         $tenant = Tenant::create(['name' => 'Tenant C', 'status' => 'active', 'plan_tier' => 'starter']);
+        $adminRole = Role::where('name', 'admin')->first();
 
         $user = User::create([
             'tenant_id' => $tenant->id,
             'name' => 'Charlie',
             'email' => 'charlie@example.com',
-            'role' => 'admin',
+            'role_id' => $adminRole->id,
             'password' => bcrypt('password123'),
             'mfa_enabled' => false,
         ]);
@@ -81,6 +95,7 @@ class Phase0FoundationTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('user.id', $user->id)
             ->assertJsonPath('user.tenant_id', $tenant->id)
+            ->assertJsonPath('user.role', 'admin')
             ->assertJsonPath('token', fn ($token) => is_string($token) && $token !== '');
     }
 }

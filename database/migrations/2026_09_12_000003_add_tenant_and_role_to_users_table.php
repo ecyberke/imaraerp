@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->foreignId('tenant_id')->nullable()->after('id')->constrained()->cascadeOnDelete();
-            $table->string('role')->nullable()->after('email');
-            $table->boolean('mfa_enabled')->default(false)->after('role');
+            $table->foreignId('role_id')->nullable()->after('email')->constrained();
+            $table->boolean('mfa_enabled')->default(false)->after('role_id');
         });
     }
 
@@ -19,7 +19,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->dropConstrainedForeignId('tenant_id');
-            $table->dropColumn(['role', 'mfa_enabled']);
+            $table->dropConstrainedForeignId('role_id');
+            $table->dropColumn(['mfa_enabled']);
         });
     }
 };
