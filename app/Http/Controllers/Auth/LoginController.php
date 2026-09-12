@@ -30,8 +30,10 @@ class LoginController
             'token' => $token,
             'user' => [
                 'id' => $user->id,
+                'tenant_id' => $user->tenant_id,
                 'email' => $user->email,
                 'name' => $user->name,
+                'role' => $user->role,
             ],
         ]);
     }
