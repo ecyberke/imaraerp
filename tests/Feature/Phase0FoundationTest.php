@@ -161,8 +161,11 @@ class Phase0FoundationTest extends TestCase
 
     public function test_authenticated_user_can_create_a_tenant_scoped_dummy_record(): void
     {
+        // 'sales' - not one of the two MFA-mandatory roles - so this test
+        // stays focused on the create round trip; see the MFA-gate tests
+        // below for the finance/admin-specific behavior.
         $tenant = Tenant::create(['name' => 'Tenant D', 'status' => 'active', 'plan_tier' => 'starter']);
-        $user = $this->makeUser($tenant, 'dana@example.com', 'admin');
+        $user = $this->makeUser($tenant, 'dana@example.com', 'sales');
         $token = $user->createToken('test')->plainTextToken;
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
@@ -175,5 +178,120 @@ class Phase0FoundationTest extends TestCase
             'tenant_id' => $tenant->id,
             'created_by' => $user->id,
         ]);
+    }
+
+    public function test_creating_a_dummy_record_writes_an_audit_log_entry(): void
+    {
+        $tenant = Tenant::create(['name' => 'Tenant E', 'status' => 'active', 'plan_tier' => 'starter']);
+        $user = $this->makeUser($tenant, 'eve@example.com', 'sales');
+        $token = $user->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/dummy-records', ['name' => 'Audited record']);
+
+        $response->assertCreated();
+
+        $this->assertDatabaseHas('audit_logs', [
+            'tenant_id' => $tenant->id,
+            'user_id' => $user->id,
+            'action' => 'created',
+            'entity_type' => DummyRecord::class,
+            'entity_id' => $response->json('id'),
+        ]);
+    }
+
+    public function test_intended_period_open_posts_directly_with_no_forwarding(): void
+    {
+        $tenant = Tenant::create(['name' => 'Tenant F', 'status' => 'active', 'plan_tier' => 'starter']);
+        $user = $this->makeUser($tenant, 'frank@example.com', 'sales');
+        $token = $user->createToken('test')->plainTextToken;
+
+        // Seeded on tenant creation: the current calendar year is fully
+        // open, so "today" lands directly in its own period.
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/dummy-records', [
+                'name' => 'On-time record',
+                'record_date' => now()->toDateString(),
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('original_intended_posting_date', null);
+    }
+
+    public function test_dated_into_a_closed_period_auto_forwards_instead_of_rejecting(): void
+    {
+        // Architecture §3.10: a closed-period posting is never rejected
+        // outright - it auto-forwards to the earliest open period with the
+        // original intent recorded. (execution_plan.md's own exit-criterion
+        // wording says "rejected", which reads as a drift against §3.10's
+        // explicit resolution - the architecture doc wins per the stated
+        // priority order, flagged to the user rather than guessed at.)
+        $tenant = Tenant::create(['name' => 'Tenant G', 'status' => 'active', 'plan_tier' => 'starter']);
+        $user = $this->makeUser($tenant, 'grace@example.com', 'sales');
+
+        \App\Models\AccountingPeriod::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->whereMonth('start_date', now()->month)
+            ->update(['status' => 'closed']);
+
+        $token = $user->createToken('test')->plainTextToken;
+        $intendedDate = now()->toDateString();
+
+        $response = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/dummy-records', [
+                'name' => 'Backdated into a closed month',
+                'record_date' => $intendedDate,
+            ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('original_intended_posting_date', $intendedDate);
+
+        $this->assertNotNull($response->json('accounting_period_id'));
+    }
+
+    public function test_finance_and_admin_roles_are_blocked_from_sensitive_actions_without_mfa(): void
+    {
+        $tenant = Tenant::create(['name' => 'Tenant H', 'status' => 'active', 'plan_tier' => 'starter']);
+        $user = $this->makeUser($tenant, 'henry@example.com', 'finance');
+        $token = $user->createToken('test')->plainTextToken;
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/dummy-records', ['name' => 'Should be blocked'])
+            ->assertForbidden()
+            ->assertJsonPath('mfa_setup_required', true);
+    }
+
+    public function test_finance_user_can_act_after_completing_mfa_enrollment(): void
+    {
+        $tenant = Tenant::create(['name' => 'Tenant I', 'status' => 'active', 'plan_tier' => 'starter']);
+        $user = $this->makeUser($tenant, 'ivy@example.com', 'finance');
+        $token = $user->createToken('test')->plainTextToken;
+
+        $setup = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/mfa/setup');
+        $setup->assertOk();
+
+        $secret = $setup->json('secret');
+        $validCode = (new \PragmaRX\Google2FA\Google2FA)->getCurrentOtp($secret);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/mfa/confirm', ['code' => $validCode])
+            ->assertOk()
+            ->assertJsonPath('mfa_enabled', true);
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/dummy-records', ['name' => 'Now allowed'])
+            ->assertCreated();
+    }
+
+    public function test_non_mfa_mandatory_roles_are_unaffected_by_the_mfa_gate(): void
+    {
+        $tenant = Tenant::create(['name' => 'Tenant J', 'status' => 'active', 'plan_tier' => 'starter']);
+        $user = $this->makeUser($tenant, 'jack@example.com', 'site_supervisor');
+        $token = $user->createToken('test')->plainTextToken;
+
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson('/api/dummy-records', ['name' => 'Fine without MFA'])
+            ->assertCreated();
     }
 }

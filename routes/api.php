@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DummyRecordController;
+use App\Http\Controllers\MfaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/auth/login', [LoginController::class, 'login']);
+// Rate-limited auth endpoint (architecture §1.1's security baseline).
+Route::post('/auth/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/health', function (Request $request) {
@@ -16,6 +18,12 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    Route::post('/dummy-records', [DummyRecordController::class, 'store']);
+    Route::post('/mfa/setup', [MfaController::class, 'setup']);
+    Route::post('/mfa/confirm', [MfaController::class, 'confirm']);
+
+    // 'mfa' gates creation for Finance/Admin roles without MFA enrolled
+    // (§1.1) - the pattern every real financial-entity mutation route
+    // reuses from ledger-core onward.
+    Route::post('/dummy-records', [DummyRecordController::class, 'store'])->middleware('mfa');
     Route::get('/dummy-records/{dummyRecord}', [DummyRecordController::class, 'show']);
 });
