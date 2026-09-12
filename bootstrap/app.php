@@ -1,6 +1,8 @@
 <?php
 
 use App\Exceptions\NoOpenAccountingPeriodException;
+use App\Http\Middleware\AddSecurityHeaders;
+use App\Http\Middleware\AssignCorrelationId;
 use App\Http\Middleware\EnsureMfaForSensitiveRoles;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -12,6 +14,15 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
+        // Laravel's built-in liveness probe - this IS what architecture
+        // §1.1's "/health (liveness)" baseline means, just at Laravel's own
+        // default path rather than literally "/health" (which this app
+        // separately uses, under auth:sanctum, as a "who am I" diagnostic
+        // route for tests - two different things sharing a similar name,
+        // worth the naming collision being explicit rather than confused
+        // for one another later). "/ready" (readiness: DB + queue
+        // connectivity) is a real route in routes/api.php, unauthenticated
+        // like this one has to be - an infra probe can't hold a bearer token.
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -22,6 +33,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'mfa' => EnsureMfaForSensitiveRoles::class,
         ]);
+
+        // Structured logging with a correlation ID (§1.1), on every request.
+        $middleware->api(prepend: [AssignCorrelationId::class]);
+        $middleware->append(AddSecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (NoOpenAccountingPeriodException $e, Request $request) {
