@@ -31,7 +31,31 @@ class Tenant extends Model
             $tenant->seedInitialAccountingPeriods();
             ChartOfAccountsSeeder::seed($tenant);
             TaxCodeSeeder::seed($tenant);
+            $tenant->seedDefaultWarehouses();
         });
+    }
+
+    /**
+     * Architecture §12 item #4 (resolved): multi-warehouse required from
+     * day one, "Main Warehouse" seeded as the v1 default. §3.3 also names
+     * a designated "In Transit" warehouse transfer_out/transfer_in
+     * movements land goods in/out of - seeded here too so it exists
+     * before the first transfer is ever attempted.
+     */
+    public function seedDefaultWarehouses(): void
+    {
+        $now = now();
+
+        DB::table('warehouses')->insert([
+            [
+                'tenant_id' => $this->getKey(), 'name' => 'Main Warehouse', 'code' => 'MAIN',
+                'is_default' => true, 'is_in_transit' => false, 'created_at' => $now, 'updated_at' => $now,
+            ],
+            [
+                'tenant_id' => $this->getKey(), 'name' => 'In Transit', 'code' => 'TRANSIT',
+                'is_default' => false, 'is_in_transit' => true, 'created_at' => $now, 'updated_at' => $now,
+            ],
+        ]);
     }
 
     public function seedDefaultRoles(): void
