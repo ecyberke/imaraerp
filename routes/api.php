@@ -9,7 +9,11 @@ use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\MfaController;
 use App\Http\Controllers\PartyController;
+use App\Http\Controllers\StockAvailabilityController;
+use App\Http\Controllers\StockReceivingController;
+use App\Http\Controllers\StockReservationController;
 use App\Http\Controllers\UnitOfMeasureController;
+use App\Http\Controllers\WarehouseController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -78,4 +82,18 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middlewareFor(['store', 'update', 'destroy'], 'mfa');
     Route::apiResource('bill-of-materials', BillOfMaterialController::class)
         ->middlewareFor(['store', 'update', 'destroy'], 'mfa');
+
+    // inventory-core (§3.3/§6): the GRN-receipt -> QC -> stock_ledger
+    // round trip, availability, and the locked check-and-reserve
+    // mechanism - see StockReceivingService/StockAvailabilityService for
+    // why GoodsReceiptNote/SalesOrderReservation aren't real entities yet.
+    Route::apiResource('warehouses', WarehouseController::class)
+        ->only(['index', 'store', 'show'])
+        ->middlewareFor(['store'], 'mfa');
+    Route::post('/stock/quarantine', [StockReceivingController::class, 'storeQuarantine'])->middleware('mfa');
+    Route::get('/stock/quarantine/{stockQuarantine}', [StockReceivingController::class, 'showQuarantine']);
+    Route::post('/stock/quality-checks', [StockReceivingController::class, 'storeQualityCheck'])->middleware('mfa');
+    Route::get('/stock/availability', [StockAvailabilityController::class, 'show']);
+    Route::post('/stock/reservations', [StockReservationController::class, 'store'])->middleware('mfa');
+    Route::get('/stock/reservations/{stockReservation}', [StockReservationController::class, 'show']);
 });
