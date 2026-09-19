@@ -2,9 +2,14 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BillOfMaterialController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DummyRecordController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\ItemController;
 use App\Http\Controllers\MfaController;
+use App\Http\Controllers\PartyController;
+use App\Http\Controllers\UnitOfMeasureController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -57,4 +62,20 @@ Route::middleware('auth:sanctum')->group(function () {
     // mutation route reuses from ledger-core onward.
     Route::post('/dummy-records', [DummyRecordController::class, 'store'])->middleware(['mfa', 'idempotent']);
     Route::get('/dummy-records/{dummyRecord}', [DummyRecordController::class, 'show']);
+
+    // master-data: §1.1's MFA mandate is stated per-role ("mandatory for
+    // Finance and Admin"), not scoped to a narrow set of "financial"
+    // routes - applied here to every mutation the same way, not just
+    // read endpoints, so an Admin without MFA is consistently blocked
+    // everywhere, not just on the routes that happen to look financial.
+    Route::apiResource('parties', PartyController::class)
+        ->middlewareFor(['store', 'update', 'destroy'], 'mfa');
+    Route::apiResource('categories', CategoryController::class)
+        ->middlewareFor(['store', 'update', 'destroy'], 'mfa');
+    Route::apiResource('units-of-measure', UnitOfMeasureController::class)
+        ->middlewareFor(['store', 'update', 'destroy'], 'mfa');
+    Route::apiResource('items', ItemController::class)
+        ->middlewareFor(['store', 'update', 'destroy'], 'mfa');
+    Route::apiResource('bill-of-materials', BillOfMaterialController::class)
+        ->middlewareFor(['store', 'update', 'destroy'], 'mfa');
 });
