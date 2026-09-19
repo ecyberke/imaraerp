@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\ChartOfAccountsSeeder;
+use App\Services\TaxCodeSeeder;
 use App\Support\BusinessTime;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -27,6 +29,8 @@ class Tenant extends Model
         static::created(function (Tenant $tenant) {
             $tenant->seedDefaultRoles();
             $tenant->seedInitialAccountingPeriods();
+            ChartOfAccountsSeeder::seed($tenant);
+            TaxCodeSeeder::seed($tenant);
         });
     }
 
