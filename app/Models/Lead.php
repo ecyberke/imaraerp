@@ -5,21 +5,14 @@ namespace App\Models;
 use App\Models\Scopes\TenantScope;
 use Illuminate\Database\Eloquent\Model;
 
-class Subcontract extends Model
+class Lead extends Model
 {
     protected $fillable = [
         'tenant_id',
         'party_id',
-        'project_id',
-        'boq_id',
-        'required_document_types',
+        'source',
         'status',
     ];
-
-    protected function casts(): array
-    {
-        return ['required_document_types' => 'array'];
-    }
 
     protected static function booted(): void
     {
@@ -31,14 +24,9 @@ class Subcontract extends Model
         return $this->belongsTo(Party::class);
     }
 
-    public function boq()
+    public function salesOrders()
     {
-        return $this->belongsTo(Boq::class, 'boq_id');
-    }
-
-    public function progressClaims()
-    {
-        return $this->hasMany(ProgressClaim::class);
+        return $this->hasMany(SalesOrder::class);
     }
 
     public function tenant()
