@@ -108,6 +108,78 @@ class StockValuationService
         return $runningValue;
     }
 
+    /**
+     * The cost to attribute to an OUT movement of `quantity` units that
+     * hasn't been written to the ledger yet (a Delivery's COGS, §3.2) -
+     * dispatches by valuation_method same as onHandValue, but computes
+     * the cost of *this* issue rather than the whole remaining balance.
+     */
+    public function costOfIssue(Item $item, Warehouse $warehouse, string $quantity): Money
+    {
+        $method = $item->category->valuation_method;
+
+        return match ($method) {
+            'standard_cost' => ($item->standard_cost ?? Money::zero())->multiply($quantity),
+            'weighted_average' => $this->weightedAverageIssueCost($item, $warehouse, $quantity),
+            'fifo' => $this->fifoIssueCost($item, $warehouse, $quantity),
+            default => throw new \InvalidArgumentException("Unknown valuation_method '{$method}'."),
+        };
+    }
+
+    private function weightedAverageIssueCost(Item $item, Warehouse $warehouse, string $quantity): Money
+    {
+        $onHandQty = $this->onHandQuantity($item, $warehouse);
+
+        if (bccomp($onHandQty, '0', 4) <= 0) {
+            return Money::zero();
+        }
+
+        $onHandValue = $this->weightedAverageValue($item, $warehouse);
+
+        return $onHandValue->multiply(bcdiv($quantity, $onHandQty, 10));
+    }
+
+    private function fifoIssueCost(Item $item, Warehouse $warehouse, string $quantity): Money
+    {
+        /** @var array<int, array{qty: string, unitCost: Money}> $layers */
+        $layers = [];
+
+        foreach ($this->ledgerRows($item, $warehouse) as $row) {
+            $signed = $row->signedQuantity();
+
+            if (bccomp($signed, '0', 4) > 0) {
+                $layers[] = ['qty' => $signed, 'unitCost' => $row->unit_cost_cents];
+
+                continue;
+            }
+
+            $toConsume = bcmul($signed, '-1', 4);
+            foreach ($layers as $i => &$layer) {
+                if (bccomp($toConsume, '0', 4) <= 0) {
+                    break;
+                }
+                $consumedFromLayer = bccomp($layer['qty'], $toConsume, 4) < 0 ? $layer['qty'] : $toConsume;
+                $layer['qty'] = bcsub($layer['qty'], $consumedFromLayer, 4);
+                $toConsume = bcsub($toConsume, $consumedFromLayer, 4);
+            }
+            unset($layer);
+            $layers = array_values(array_filter($layers, fn ($l) => bccomp($l['qty'], '0', 4) > 0));
+        }
+
+        $toConsume = $quantity;
+        $cost = Money::zero();
+        foreach ($layers as $layer) {
+            if (bccomp($toConsume, '0', 4) <= 0) {
+                break;
+            }
+            $consumedFromLayer = bccomp($layer['qty'], $toConsume, 4) < 0 ? $layer['qty'] : $toConsume;
+            $cost = $cost->add($layer['unitCost']->multiply($consumedFromLayer));
+            $toConsume = bcsub($toConsume, $consumedFromLayer, 4);
+        }
+
+        return $cost;
+    }
+
     private function fifoValue(Item $item, Warehouse $warehouse): Money
     {
         /** @var array<int, array{qty: string, unitCost: Money}> $layers */
@@ -118,6 +190,7 @@ class StockValuationService
 
             if (bccomp($signed, '0', 4) > 0) {
                 $layers[] = ['qty' => $signed, 'unitCost' => $row->unit_cost_cents];
+
                 continue;
             }
 

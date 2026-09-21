@@ -3,18 +3,24 @@
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BillOfMaterialController;
+use App\Http\Controllers\BoqController;
+use App\Http\Controllers\BoqImportStagingController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DemandTriggerController;
 use App\Http\Controllers\DummyRecordController;
 use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LandedCostController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MfaController;
 use App\Http\Controllers\PartyController;
 use App\Http\Controllers\ProgressClaimController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseRequisitionController;
+use App\Http\Controllers\SalesOrderController;
+use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\StockAvailabilityController;
 use App\Http\Controllers\StockReceivingController;
 use App\Http\Controllers\StockReservationController;
@@ -137,4 +143,36 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/supplier-payments', [SupplierPaymentController::class, 'store'])->middleware('mfa');
     Route::post('/supplier-payments/fx-settlement', [SupplierPaymentController::class, 'storeFxSettlement'])->middleware('mfa');
     Route::post('/supplier-returns', [SupplierReturnController::class, 'store'])->middleware('mfa');
+
+    // crm-sales-boq (§3.2/§5.1): Lead -> Quotation/SalesOrder ->
+    // Feasibility -> (Direct Sale) stock reservation against
+    // inventory-core; Delivery/SalesReturn; the BOQ family and its
+    // upload-to-staging-to-confirm pipeline.
+    Route::get('/leads', [LeadController::class, 'index']);
+    Route::post('/leads', [LeadController::class, 'store'])->middleware('mfa');
+    Route::get('/leads/{lead}', [LeadController::class, 'show']);
+
+    Route::get('/sales-orders', [SalesOrderController::class, 'index']);
+    Route::post('/sales-orders', [SalesOrderController::class, 'store'])->middleware('mfa');
+    Route::get('/sales-orders/{salesOrder}', [SalesOrderController::class, 'show']);
+    Route::post('/sales-orders/{salesOrder}/submit-for-feasibility', [SalesOrderController::class, 'submitForFeasibility'])->middleware('mfa');
+    Route::post('/sales-orders/{salesOrder}/feasibility-assessments', [SalesOrderController::class, 'assessFeasibility'])->middleware('mfa');
+    Route::post('/sales-orders/{salesOrder}/resubmit', [SalesOrderController::class, 'resubmit'])->middleware('mfa');
+    Route::post('/sales-orders/{salesOrder}/reserve-stock', [SalesOrderController::class, 'reserveStock'])->middleware('mfa');
+
+    Route::post('/sales-orders/{salesOrder}/deliveries', [DeliveryController::class, 'store'])->middleware('mfa');
+    Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show']);
+    Route::post('/deliveries/{delivery}/lines', [DeliveryController::class, 'addLine'])->middleware('mfa');
+    Route::post('/deliveries/{delivery}/mark-delivered', [DeliveryController::class, 'markDelivered'])->middleware('mfa');
+    Route::post('/deliveries/{delivery}/sales-returns', [SalesReturnController::class, 'store'])->middleware('mfa');
+
+    Route::get('/boqs', [BoqController::class, 'index']);
+    Route::post('/boqs', [BoqController::class, 'store'])->middleware('mfa');
+    Route::get('/boqs/{boq}', [BoqController::class, 'show']);
+
+    Route::get('/boq-import-stagings', [BoqImportStagingController::class, 'index']);
+    Route::post('/boq-import-stagings', [BoqImportStagingController::class, 'store'])->middleware('mfa');
+    Route::patch('/boq-import-stagings/{boqImportStaging}/map', [BoqImportStagingController::class, 'map'])->middleware('mfa');
+    Route::post('/boq-import-stagings/{boqImportStaging}/confirm', [BoqImportStagingController::class, 'confirm'])->middleware('mfa');
+    Route::post('/boq-import-stagings/{boqImportStaging}/reject', [BoqImportStagingController::class, 'reject'])->middleware('mfa');
 });

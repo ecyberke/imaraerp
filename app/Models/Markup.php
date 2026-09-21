@@ -5,20 +5,19 @@ namespace App\Models;
 use App\Models\Scopes\TenantScope;
 use Illuminate\Database\Eloquent\Model;
 
-class Subcontract extends Model
+class Markup extends Model
 {
     protected $fillable = [
         'tenant_id',
-        'party_id',
-        'project_id',
         'boq_id',
-        'required_document_types',
-        'status',
+        'section_id',
+        'name',
+        'percentage',
     ];
 
     protected function casts(): array
     {
-        return ['required_document_types' => 'array'];
+        return ['percentage' => 'decimal:4'];
     }
 
     protected static function booted(): void
@@ -26,19 +25,14 @@ class Subcontract extends Model
         static::addGlobalScope(new TenantScope);
     }
 
-    public function party()
-    {
-        return $this->belongsTo(Party::class);
-    }
-
     public function boq()
     {
         return $this->belongsTo(Boq::class, 'boq_id');
     }
 
-    public function progressClaims()
+    public function section()
     {
-        return $this->hasMany(ProgressClaim::class);
+        return $this->belongsTo(BoqSection::class, 'section_id');
     }
 
     public function tenant()

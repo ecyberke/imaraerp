@@ -5,20 +5,21 @@ namespace App\Models;
 use App\Models\Scopes\TenantScope;
 use Illuminate\Database\Eloquent\Model;
 
-class Subcontract extends Model
+class Delivery extends Model
 {
+    public const STATUSES = ['pending', 'dispatched', 'delivered'];
+
     protected $fillable = [
         'tenant_id',
-        'party_id',
-        'project_id',
-        'boq_id',
-        'required_document_types',
+        'sales_order_id',
+        'warehouse_id',
         'status',
+        'delivered_at',
     ];
 
     protected function casts(): array
     {
-        return ['required_document_types' => 'array'];
+        return ['delivered_at' => 'datetime'];
     }
 
     protected static function booted(): void
@@ -26,19 +27,19 @@ class Subcontract extends Model
         static::addGlobalScope(new TenantScope);
     }
 
-    public function party()
+    public function salesOrder()
     {
-        return $this->belongsTo(Party::class);
+        return $this->belongsTo(SalesOrder::class);
     }
 
-    public function boq()
+    public function warehouse()
     {
-        return $this->belongsTo(Boq::class, 'boq_id');
+        return $this->belongsTo(Warehouse::class);
     }
 
-    public function progressClaims()
+    public function lines()
     {
-        return $this->hasMany(ProgressClaim::class);
+        return $this->hasMany(DeliveryLine::class);
     }
 
     public function tenant()
