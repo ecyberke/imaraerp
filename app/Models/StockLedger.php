@@ -19,14 +19,25 @@ class StockLedger extends Model
 
     /**
      * §3.3's exhaustive movement_type list - IN types add to on-hand, OUT
-     * types subtract. 'adjustment' is the one type whose quantity itself
-     * carries the sign (a correction can go either direction); it's
-     * absent from this map on purpose - StockValuationService applies the
-     * stored quantity's own sign for it instead of a fixed direction.
+     * types subtract. 'adjustment' and 'return' are the two types whose
+     * quantity itself carries the sign, absent from these maps on
+     * purpose - StockValuationService applies the stored quantity's own
+     * sign for them instead of a fixed direction.
+     *
+     * 'return' is genuinely bidirectional and the doc doesn't disambiguate:
+     * a "surplus return" (§6 - site returns excess RM to the warehouse)
+     * is an increase, but a post-acceptance supplier return (§3.4/§7 -
+     * goods that already passed QC, returned to the supplier later) is a
+     * decrease. procurement's own supplier-return flow is what surfaced
+     * this - inventory-core originally classified 'return' as always-IN,
+     * which this corrects. Flagging the read (signed like 'adjustment')
+     * rather than silently picking one fixed direction.
      */
-    public const IN_TYPES = ['receipt', 'transfer_in', 'production_output', 'return'];
+    public const IN_TYPES = ['receipt', 'transfer_in', 'production_output'];
 
     public const OUT_TYPES = ['issue', 'transfer_out', 'production_consumption', 'scrap'];
+
+    public const SIGNED_TYPES = ['adjustment', 'return'];
 
     protected $table = 'stock_ledger';
 
@@ -71,7 +82,7 @@ class StockLedger extends Model
     /** The signed quantity this row contributes to on-hand stock. */
     public function signedQuantity(): string
     {
-        if ($this->movement_type === 'adjustment') {
+        if (in_array($this->movement_type, self::SIGNED_TYPES, true)) {
             return (string) $this->quantity;
         }
 

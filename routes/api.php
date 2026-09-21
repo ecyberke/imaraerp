@@ -4,14 +4,23 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BillOfMaterialController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DemandTriggerController;
 use App\Http\Controllers\DummyRecordController;
+use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\ItemController;
+use App\Http\Controllers\LandedCostController;
 use App\Http\Controllers\MfaController;
 use App\Http\Controllers\PartyController;
+use App\Http\Controllers\ProgressClaimController;
+use App\Http\Controllers\PurchaseOrderController;
+use App\Http\Controllers\PurchaseRequisitionController;
 use App\Http\Controllers\StockAvailabilityController;
 use App\Http\Controllers\StockReceivingController;
 use App\Http\Controllers\StockReservationController;
+use App\Http\Controllers\SubcontractController;
+use App\Http\Controllers\SupplierPaymentController;
+use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\UnitOfMeasureController;
 use App\Http\Controllers\WarehouseController;
 use Illuminate\Http\Request;
@@ -96,4 +105,36 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/stock/availability', [StockAvailabilityController::class, 'show']);
     Route::post('/stock/reservations', [StockReservationController::class, 'store'])->middleware('mfa');
     Route::get('/stock/reservations/{stockReservation}', [StockReservationController::class, 'show']);
+
+    // procurement (§3.4/§5.2): DemandTrigger -> PR -> PO -> GRN -> QC ->
+    // ledger; Subcontract/ProgressClaim certify+reverse; supplier
+    // payments (incl. FX settlement) and post-acceptance returns.
+    Route::get('/demand-triggers', [DemandTriggerController::class, 'index']);
+    Route::post('/demand-triggers/check', [DemandTriggerController::class, 'check'])->middleware('mfa');
+
+    Route::get('/purchase-requisitions', [PurchaseRequisitionController::class, 'index']);
+    Route::post('/purchase-requisitions', [PurchaseRequisitionController::class, 'store'])->middleware('mfa');
+    Route::get('/purchase-requisitions/{purchaseRequisition}', [PurchaseRequisitionController::class, 'show']);
+    Route::patch('/purchase-requisitions/{purchaseRequisition}/approve', [PurchaseRequisitionController::class, 'approve'])->middleware('mfa');
+
+    Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
+    Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->middleware('mfa');
+    Route::get('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show']);
+
+    Route::post('/purchase-orders/{purchaseOrder}/goods-receipt-notes', [GoodsReceiptNoteController::class, 'store'])->middleware('mfa');
+    Route::get('/goods-receipt-notes/{goodsReceiptNote}', [GoodsReceiptNoteController::class, 'show']);
+    Route::post('/goods-receipt-notes/{goodsReceiptNote}/lines', [GoodsReceiptNoteController::class, 'receiveLine'])->middleware('mfa');
+    Route::post('/goods-receipt-notes/{goodsReceiptNote}/landed-costs', [LandedCostController::class, 'store'])->middleware('mfa');
+    Route::post('/grn-lines/{grnLine}/quality-checks', [GoodsReceiptNoteController::class, 'recordQualityCheck'])->middleware('mfa');
+
+    Route::post('/subcontracts', [SubcontractController::class, 'store'])->middleware('mfa');
+    Route::get('/subcontracts/{subcontract}', [SubcontractController::class, 'show']);
+    Route::post('/subcontracts/{subcontract}/progress-claims', [ProgressClaimController::class, 'store'])->middleware('mfa');
+    Route::get('/progress-claims/{progressClaim}', [ProgressClaimController::class, 'show']);
+    Route::post('/progress-claims/{progressClaim}/certify', [ProgressClaimController::class, 'certify'])->middleware('mfa');
+    Route::post('/progress-claims/{progressClaim}/reverse', [ProgressClaimController::class, 'reverse'])->middleware('mfa');
+
+    Route::post('/supplier-payments', [SupplierPaymentController::class, 'store'])->middleware('mfa');
+    Route::post('/supplier-payments/fx-settlement', [SupplierPaymentController::class, 'storeFxSettlement'])->middleware('mfa');
+    Route::post('/supplier-returns', [SupplierReturnController::class, 'store'])->middleware('mfa');
 });
