@@ -5,20 +5,29 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BillOfMaterialController;
 use App\Http\Controllers\BoqController;
 use App\Http\Controllers\BoqImportStagingController;
+use App\Http\Controllers\CapitalMovementController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ContractRetentionTermsController;
+use App\Http\Controllers\CreditApprovalController;
+use App\Http\Controllers\CreditNoteController;
+use App\Http\Controllers\DebitNoteController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DemandTriggerController;
 use App\Http\Controllers\DummyRecordController;
 use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LandedCostController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MfaController;
+use App\Http\Controllers\OpeningBalanceBatchController;
 use App\Http\Controllers\PartyController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProgressClaimController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseRequisitionController;
+use App\Http\Controllers\RetentionReleaseController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\StockAvailabilityController;
@@ -29,6 +38,7 @@ use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\UnitOfMeasureController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\WriteOffController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -175,4 +185,40 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/boq-import-stagings/{boqImportStaging}/map', [BoqImportStagingController::class, 'map'])->middleware('mfa');
     Route::post('/boq-import-stagings/{boqImportStaging}/confirm', [BoqImportStagingController::class, 'confirm'])->middleware('mfa');
     Route::post('/boq-import-stagings/{boqImportStaging}/reject', [BoqImportStagingController::class, 'reject'])->middleware('mfa');
+
+    // finance-billing (§3.9): Invoice -> CreditApproval -> raise ->
+    // Payment/PaymentAllocation, CreditNote/DebitNote corrections,
+    // Write-off, RetentionAccount/ContractRetentionTerms/
+    // RetentionRelease, CapitalMovement, and the OpeningBalanceBatch
+    // migration mechanism.
+    Route::post('/contract-retention-terms', [ContractRetentionTermsController::class, 'store'])->middleware('mfa');
+
+    Route::get('/invoices', [InvoiceController::class, 'index']);
+    Route::post('/invoices', [InvoiceController::class, 'store'])->middleware('mfa');
+    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
+    Route::post('/invoices/{invoice}/raise', [InvoiceController::class, 'raise'])->middleware('mfa');
+
+    Route::post('/credit-approvals', [CreditApprovalController::class, 'store'])->middleware('mfa');
+    Route::post('/credit-approvals/{creditApproval}/override', [CreditApprovalController::class, 'override'])->middleware('mfa');
+
+    Route::post('/credit-notes', [CreditNoteController::class, 'store'])->middleware('mfa');
+    Route::post('/debit-notes', [DebitNoteController::class, 'store'])->middleware('mfa');
+    Route::post('/write-offs', [WriteOffController::class, 'store'])->middleware('mfa');
+
+    Route::post('/retention-releases', [RetentionReleaseController::class, 'store'])->middleware('mfa');
+    Route::post('/retention-releases/{retentionRelease}/mark-ready', [RetentionReleaseController::class, 'markReady'])->middleware('mfa');
+    Route::post('/retention-releases/{retentionRelease}/release', [RetentionReleaseController::class, 'release'])->middleware('mfa');
+
+    Route::post('/payments', [PaymentController::class, 'store'])->middleware('mfa');
+    Route::post('/payment-allocations/{paymentAllocation}/refund', [PaymentController::class, 'refundAdvance'])->middleware('mfa');
+
+    Route::post('/capital-movements', [CapitalMovementController::class, 'store'])->middleware('mfa');
+
+    Route::post('/opening-balance-batches', [OpeningBalanceBatchController::class, 'store'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/invoices', [OpeningBalanceBatchController::class, 'addInvoice'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/payments', [OpeningBalanceBatchController::class, 'addPayment'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/payment-allocations', [OpeningBalanceBatchController::class, 'addPaymentAllocation'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/stock', [OpeningBalanceBatchController::class, 'addStock'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/document-sequence', [OpeningBalanceBatchController::class, 'initializeDocumentSequence'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/post', [OpeningBalanceBatchController::class, 'post'])->middleware('mfa');
 });

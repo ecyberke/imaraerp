@@ -29,6 +29,7 @@ class ProgressClaim extends Model
         'subcontractor_invoice_date',
         'status',
         'journal_entry_id',
+        'is_opening_balance',
     ];
 
     protected $hidden = [
@@ -51,6 +52,7 @@ class ProgressClaim extends Model
             'wht_amount_cents' => MoneyCast::class,
             'net_payable_cents' => MoneyCast::class,
             'subcontractor_invoice_date' => 'date',
+            'is_opening_balance' => 'boolean',
         ];
     }
 
@@ -102,6 +104,11 @@ class ProgressClaim extends Model
     public function journalEntry()
     {
         return $this->belongsTo(JournalEntry::class);
+    }
+
+    public function retentionAccount()
+    {
+        return $this->hasOne(RetentionAccount::class);
     }
 
     public function tenant()

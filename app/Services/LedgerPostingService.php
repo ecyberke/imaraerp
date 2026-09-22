@@ -6,8 +6,8 @@ use App\Models\AnalyticAccount;
 use App\Models\ChartOfAccount;
 use App\Models\JournalEntry;
 use App\Models\JournalLine;
-use App\Models\Tenant;
 use App\Models\TaxCode;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Services\Ledger\EntryInput;
 use App\Services\Ledger\LineInput;
@@ -36,9 +36,7 @@ class LedgerPostingService
     /** @var array<string, int> in-request cache: "{tenant_id}:{type}:{name}" -> id */
     private array $resolvedIds = [];
 
-    public function __construct(private AccountingPeriodResolver $periods)
-    {
-    }
+    public function __construct(private AccountingPeriodResolver $periods) {}
 
     // =========================================================================
     // Persistence — resolves accounts/period, writes JournalEntry + JournalLine
@@ -226,7 +224,24 @@ class LedgerPostingService
         return new EntryInput('grn_receipt_standard_cost', 'GRN', $grnReference, ...$lines);
     }
 
-    // --- §7: Invoice raised, client contract ---
+    /**
+     * $precomputedVatAmount / $precomputedRetentionAmount (finance-billing
+     * addition, both optional, default null): §3.9's InvoiceLine rounding
+     * rule is explicit that "Invoice.vat_amount is the sum of the rounded
+     * line-level amounts ... per-line VAT is never backed into from an
+     * invoice-level total" - but grossAmount->multiplyByRate($vatRate)
+     * below is exactly that single invoice-level recalculation, and can
+     * differ by a cent from the real per-line sum on multi-line invoices
+     * with awkward splits. Likewise retentionAmount needs to reflect
+     * ContractRetentionTerms' cap enforcement (§3.9), which a flat
+     * grossAmount*rate can't express once cumulative retention has hit
+     * the cap. Both params exist so InvoiceService can pass its own
+     * authoritative figures through instead of this method silently
+     * recomputing a possibly-different one; $vatRate/$retentionPercentage
+     * are still required (they drive vatOnRetention, and remain the
+     * no-override behavior every existing ledger-core test call relies
+     * on).
+     */
     public function postInvoiceRaised(
         string $invoiceReference,
         Money $grossAmount,
@@ -234,11 +249,13 @@ class LedgerPostingService
         string $retentionPercentage,
         ?Money $advanceRecovery = null,
         ?string $analyticAccountCode = null,
+        ?Money $precomputedVatAmount = null,
+        ?Money $precomputedRetentionAmount = null,
     ): EntryInput {
         $advanceRecovery ??= Money::zero();
 
-        $vatAmount = $grossAmount->multiplyByRate($vatRate);
-        $retentionAmount = $grossAmount->multiplyByRate($retentionPercentage);
+        $vatAmount = $precomputedVatAmount ?? $grossAmount->multiplyByRate($vatRate);
+        $retentionAmount = $precomputedRetentionAmount ?? $grossAmount->multiplyByRate($retentionPercentage);
         $vatOnRetention = $retentionAmount->multiplyByRate($vatRate);
         $netPayable = $grossAmount->add($vatAmount)->sub($retentionAmount)->sub($vatOnRetention)->sub($advanceRecovery);
 
@@ -561,7 +578,7 @@ class LedgerPostingService
      * "largest remainder" fix (last line absorbs whatever rounding
      * residue remains) so the allocation always sums exactly.
      *
-     * @param array<string, Money> $grnLineValues
+     * @param  array<string, Money>  $grnLineValues
      * @return array<string, Money>
      */
     public function allocateLandedCostProportionally(array $grnLineValues, Money $totalLandedCost): array
@@ -846,6 +863,29 @@ class LedgerPostingService
             'customer_advance_refunded', 'PaymentAllocation', $paymentAllocationReference,
             new LineInput('Customer Advance', debit: $amount),
             new LineInput('Cash/Bank', credit: $amount),
+        );
+    }
+
+    /**
+     * finance-billing (not in the original reference-file port): §3.9's
+     * PaymentAllocation.invoice_id = null *is* the Customer Advance - "It
+     * posts to a dedicated Customer Advance liability account ... not
+     * generically to Accounts Receivable." postPaymentReceived() only
+     * ever credits Accounts Receivable, which is correct for the
+     * invoice-settling portion of a receipt but wrong for the
+     * unallocated/overpayment portion - crediting AR with no matching
+     * Invoice would misstate a subledger that was never actually billed.
+     * A genuine posting-coverage gap between the architecture's own
+     * described PaymentAllocation semantics and the reference spec's
+     * (invoice-only) worked examples, flagged and closed here rather
+     * than silently reusing postPaymentReceived for both cases.
+     */
+    public function postCustomerAdvanceReceived(string $paymentReference, Money $amount): EntryInput
+    {
+        return new EntryInput(
+            'customer_advance_received', 'Payment', $paymentReference,
+            new LineInput('Cash/Bank', debit: $amount),
+            new LineInput('Customer Advance', credit: $amount),
         );
     }
 
