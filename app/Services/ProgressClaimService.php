@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\ProgressClaim;
+use App\Models\RetentionAccount;
+use App\Models\Subcontract;
 use App\Models\TaxCode;
 use App\Models\Tenant;
 use App\Models\User;
@@ -12,17 +14,19 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Architecture §3.4: WHT is calculated and posted at certification, not
- * deferred to payment. retentionPercentage is an explicit parameter here
- * rather than looked up from ContractRetentionTerms - that entity is
- * §3.9/finance-billing's, built after this branch; the real lookup
- * replaces this parameter once it exists, same forward-reference pattern
- * used throughout.
+ * deferred to payment. retentionPercentage stays an explicit caller
+ * parameter (not looked up from ContractRetentionTerms) - procurement's
+ * own already-tested certify() call sites pass it directly, and
+ * changing the signature now risks destabilizing that branch for a
+ * retrofit this branch's exit criterion doesn't require. What finance-
+ * billing DOES add: certify() now opens a real RetentionAccount
+ * (direction=payable) for the withheld amount, closing the gap where
+ * ProgressClaim.retention_amount_cents was stored but never surfaced as
+ * a trackable, releasable balance.
  */
 class ProgressClaimService
 {
-    public function __construct(private LedgerPostingService $ledger)
-    {
-    }
+    public function __construct(private LedgerPostingService $ledger) {}
 
     public function certify(
         ProgressClaim $claim,
@@ -60,6 +64,19 @@ class ProgressClaimService
                 'journal_entry_id' => $entry->id,
             ]);
 
+            if ($retentionAmount->isPositive()) {
+                RetentionAccount::create([
+                    'tenant_id' => $claim->tenant_id,
+                    'contract_type' => Subcontract::class,
+                    'contract_id' => $claim->subcontract_id,
+                    'party_id' => $claim->subcontract->party_id,
+                    'direction' => 'payable',
+                    'progress_claim_id' => $claim->id,
+                    'amount_cents' => $retentionAmount->add($vatOnRetention),
+                    'released_amount_cents' => Money::zero(),
+                ]);
+            }
+
             return $claim->fresh();
         });
     }
@@ -73,7 +90,7 @@ class ProgressClaimService
      */
     public function reverse(ProgressClaim $claim, ?User $reverser = null): ProgressClaim
     {
-        return DB::transaction(function () use ($claim, $reverser) {
+        return DB::transaction(function () use ($claim) {
             $originalEntry = $claim->journalEntry()->withoutGlobalScopes()->firstOrFail();
             $this->ledger->postProgressClaimReversed($originalEntry);
 
