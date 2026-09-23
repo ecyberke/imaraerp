@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\BillOfMaterialController;
 use App\Http\Controllers\BoqController;
 use App\Http\Controllers\BoqImportStagingController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ContractRetentionTermsController;
 use App\Http\Controllers\CreditApprovalController;
 use App\Http\Controllers\CreditNoteController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebitNoteController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DemandTriggerController;
@@ -27,6 +29,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProgressClaimController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseRequisitionController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RetentionReleaseController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SalesReturnController;
@@ -221,4 +224,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/opening-balance-batches/{openingBalanceBatch}/stock', [OpeningBalanceBatchController::class, 'addStock'])->middleware('mfa');
     Route::post('/opening-balance-batches/{openingBalanceBatch}/document-sequence', [OpeningBalanceBatchController::class, 'initializeDocumentSequence'])->middleware('mfa');
     Route::post('/opening-balance-batches/{openingBalanceBatch}/post', [OpeningBalanceBatchController::class, 'post'])->middleware('mfa');
+
+    Route::get('/bank-accounts', [BankAccountController::class, 'index']);
+    Route::post('/bank-accounts', [BankAccountController::class, 'store'])->middleware('mfa');
+
+    // phase1-reports-dashboards (§10/§10.1): every report/dashboard is a
+    // read-only query over already-posted data, so none of these routes
+    // carry 'mfa' - MFA gates *mutation*, and nothing here mutates.
+    Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance']);
+    Route::get('/reports/ar-aging', [ReportController::class, 'arAging']);
+    Route::get('/reports/ap-aging', [ReportController::class, 'apAging']);
+    Route::get('/reports/party-ledger', [ReportController::class, 'partyLedger']);
+    Route::get('/reports/balance-sheet', [ReportController::class, 'balanceSheet']);
+    Route::get('/reports/income-statement', [ReportController::class, 'incomeStatement']);
+    Route::get('/reports/project-pnl', [ReportController::class, 'projectPnl']);
+    Route::get('/reports/general-ledger-detail', [ReportController::class, 'generalLedgerDetail']);
+    Route::get('/reports/general-ledger-summary', [ReportController::class, 'generalLedgerSummary']);
+    Route::get('/reports/cash-flow-statement', [ReportController::class, 'cashFlowStatement']);
+
+    Route::get('/dashboards/master', [DashboardController::class, 'master']);
+    Route::get('/dashboards/crm-sales', [DashboardController::class, 'crmSales']);
+    Route::get('/dashboards/inventory', [DashboardController::class, 'inventory']);
+    Route::get('/dashboards/procurement', [DashboardController::class, 'procurement']);
+    Route::get('/dashboards/finance', [DashboardController::class, 'finance']);
 });
