@@ -78,6 +78,11 @@ class Payment extends Model
         return $this->hasMany(PaymentAllocation::class);
     }
 
+    public function bankAccount()
+    {
+        return $this->belongsTo(BankAccount::class);
+    }
+
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);
