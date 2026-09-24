@@ -27,10 +27,12 @@ export default [
     to: 'forms-form-layouts',
   },
   {
+    // 'Numbered' variant removed - its demo source files never
+    // existed in this template checkout, breaking the production
+    // build (unrelated to Imara ERP's own screens).
     title: 'Form Wizard',
     icon: { icon: 'ri-git-commit-line' },
     children: [
-      { title: 'Numbered', to: 'forms-form-wizard-numbered' },
       { title: 'Icons', to: 'forms-form-wizard-icons' },
     ],
   },

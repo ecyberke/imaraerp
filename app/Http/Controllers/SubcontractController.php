@@ -8,6 +8,13 @@ use Illuminate\Validation\Rule;
 
 class SubcontractController extends Controller
 {
+    public function index(Request $request)
+    {
+        $this->authorize('viewAny', Subcontract::class);
+
+        return Subcontract::where('tenant_id', $request->user()->tenant_id)->get();
+    }
+
     public function store(Request $request)
     {
         $this->authorize('create', Subcontract::class);

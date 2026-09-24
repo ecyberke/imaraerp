@@ -72,10 +72,10 @@ export default [
         to: 'forms-form-layouts',
       },
       {
+        // 'Numbered' variant removed - see navigation/vertical/forms.js.
         title: 'Form Wizard',
         icon: { icon: 'ri-align-vertically' },
         children: [
-          { title: 'Numbered', to: 'forms-form-wizard-numbered' },
           { title: 'Icons', to: 'forms-form-wizard-icons' },
         ],
       },
