@@ -11,6 +11,8 @@
 // Accounts - the phase1-screens exit-criterion flow, kept as one
 // subject rather than one per entity since every role that can touch
 // any part of that flow needs to see the whole thing to complete it),
+// 'Manufacturing' (ProductionOrder - manufacturing branch, mirrors
+// ProductionOrderPolicy's own Admin/Warehouse/Procurement default),
 // 'Dashboard' (every role can at least see their own dashboard).
 export function buildAbilityRulesForRole(roleName) {
   if (roleName === 'admin')
@@ -22,6 +24,9 @@ export function buildAbilityRulesForRole(roleName) {
     rules.push({ action: 'manage', subject: 'SalesBilling' })
   else if (['procurement', 'warehouse'].includes(roleName))
     rules.push({ action: 'read', subject: 'SalesBilling' })
+
+  if (['warehouse', 'procurement'].includes(roleName))
+    rules.push({ action: 'manage', subject: 'Manufacturing' })
 
   return rules
 }

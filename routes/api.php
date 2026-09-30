@@ -29,6 +29,7 @@ use App\Http\Controllers\MfaController;
 use App\Http\Controllers\OpeningBalanceBatchController;
 use App\Http\Controllers\PartyController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\ProgressClaimController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseRequisitionController;
@@ -259,4 +260,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboards/inventory', [DashboardController::class, 'inventory']);
     Route::get('/dashboards/procurement', [DashboardController::class, 'procurement']);
     Route::get('/dashboards/finance', [DashboardController::class, 'finance']);
+
+    // manufacturing (§3.5): ProductionOrder consumes RM per the BOM,
+    // produces FG at standard cost, and posts through ledger-core's
+    // already-built (but until now unexercised) postProductionConsumption;
+    // QualityCheck proves its own polymorphic shape against a second
+    // checkable_type (GRN/StockQuarantine was the first, inventory-core).
+    Route::get('/production-orders', [ProductionOrderController::class, 'index']);
+    Route::post('/production-orders', [ProductionOrderController::class, 'store'])->middleware('mfa');
+    Route::get('/production-orders/{productionOrder}', [ProductionOrderController::class, 'show']);
+    Route::post('/production-orders/{productionOrder}/complete', [ProductionOrderController::class, 'complete'])->middleware('mfa');
+    Route::post('/production-orders/{productionOrder}/quality-checks', [ProductionOrderController::class, 'recordQualityCheck'])->middleware('mfa');
 });
