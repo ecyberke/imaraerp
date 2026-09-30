@@ -12,3 +12,9 @@ Artisan::command('inspire', function () {
 // pattern every later scheduled job (retention re-evaluation, monthly
 // depreciation, statutory reminders, ...) reuses from here on.
 Schedule::command('invitations:prune-expired')->daily()->withoutOverlapping();
+
+// §3.6: "scheduled -> active fires automatically when block_start_date
+// is reached ... not a manual click that site staff would routinely
+// forget." Daily is sufficient granularity - block_start_date/
+// block_end_date are dates, not datetimes.
+Schedule::command('resource-assignments:advance-status')->daily()->withoutOverlapping();

@@ -13,7 +13,10 @@
 // any part of that flow needs to see the whole thing to complete it),
 // 'Manufacturing' (ProductionOrder - manufacturing branch, mirrors
 // ProductionOrderPolicy's own Admin/Warehouse/Procurement default),
-// 'Dashboard' (every role can at least see their own dashboard).
+// 'Resourcing' (Resource/ResourceAssignment - labour-resourcing branch,
+// mirrors §11's "Project Manager - Project, Milestone, Resource
+// Assignment"), 'Dashboard' (every role can at least see their own
+// dashboard).
 export function buildAbilityRulesForRole(roleName) {
   if (roleName === 'admin')
     return [{ action: 'manage', subject: 'all' }]
@@ -27,6 +30,9 @@ export function buildAbilityRulesForRole(roleName) {
 
   if (['warehouse', 'procurement'].includes(roleName))
     rules.push({ action: 'manage', subject: 'Manufacturing' })
+
+  if (roleName === 'project_manager')
+    rules.push({ action: 'manage', subject: 'Resourcing' })
 
   return rules
 }
