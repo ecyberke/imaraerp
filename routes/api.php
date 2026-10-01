@@ -27,6 +27,7 @@ use App\Http\Controllers\DummyRecordController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmploymentContractController;
 use App\Http\Controllers\EquipmentHireContractController;
+use App\Http\Controllers\EtimsController;
 use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\IntegrationCredentialController;
 use App\Http\Controllers\InvitationController;
@@ -473,4 +474,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mpesa/stk-requests', [MpesaStkRequestController::class, 'index']);
     Route::post('/mpesa/stk-requests', [MpesaStkRequestController::class, 'store'])->middleware('mfa');
     Route::get('/mpesa/stk-requests/{mpesaStkRequest}', [MpesaStkRequestController::class, 'show']);
+
+    // etims-integration (Phase 3): a deliberately thin first slice - see
+    // EtimsService's own docblock for why only device initialization and
+    // the item-classification-code sync are built so far.
+    Route::post('/etims/initialize-device', [EtimsController::class, 'initializeDevice'])->middleware('mfa');
+    Route::post('/etims/sync-item-classifications', [EtimsController::class, 'syncItemClassifications'])->middleware('mfa');
+    Route::get('/etims/item-classifications', [EtimsController::class, 'listItemClassifications']);
 });

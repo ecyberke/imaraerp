@@ -24,8 +24,26 @@ class IntegrationCredential extends Model
             'consumer_secret' => ['label' => 'Consumer Secret', 'secret' => true],
             'passkey' => ['label' => 'Passkey', 'secret' => true],
         ],
-        // eTIMS field schema lands with the etims-integration branch, once
-        // that work actually starts, rather than being guessed at here.
+        // KRA eTIMS OSCU. tin/bhfId/dvcSrlNo come from the taxpayer's own
+        // eTIMS Sandbox/Production registration (KRA assigns these per
+        // taxpayer - never guessed or defaulted). cmcKey is normally
+        // filled in automatically by EtimsService::initializeDevice()
+        // once the device successfully initializes against KRA, but stays
+        // a plain editable field here too - KRA's documented response
+        // shape for that call isn't officially published, so a manual
+        // override is the safety net if auto-extraction ever misses it.
+        // apigee_app_id is documented as required for the separate
+        // GavaConnect *automated testing* harness, not confirmed as
+        // required for ordinary Simulation Sandbox/Production calls -
+        // left optional rather than assumed mandatory.
+        'etims' => [
+            'environment' => ['label' => 'Environment', 'secret' => false],
+            'tin' => ['label' => 'KRA PIN (TIN)', 'secret' => false],
+            'bhf_id' => ['label' => 'Branch ID', 'secret' => false],
+            'dvc_srl_no' => ['label' => 'Device Serial Number', 'secret' => false],
+            'cmc_key' => ['label' => 'Communication Key (cmcKey)', 'secret' => true],
+            'apigee_app_id' => ['label' => 'Apigee App ID (optional)', 'secret' => true],
+        ],
     ];
 
     protected $fillable = [
