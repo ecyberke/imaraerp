@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Services\ChartOfAccountsSeeder;
+use App\Services\PublicHolidaySeeder;
+use App\Services\StatutoryDeductionRateSeeder;
 use App\Services\TaxCodeSeeder;
 use App\Support\BusinessTime;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -33,6 +35,8 @@ class Tenant extends Model
             TaxCodeSeeder::seed($tenant);
             $tenant->seedDefaultWarehouses();
             $tenant->seedDefaultCurrency();
+            StatutoryDeductionRateSeeder::seed($tenant);
+            PublicHolidaySeeder::seed($tenant);
         });
     }
 

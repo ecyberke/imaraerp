@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\AccountingPeriod;
 use App\Models\AnalyticAccount;
+use App\Models\Asset;
+use App\Models\AssetComponent;
 use App\Models\ChartOfAccount;
 use App\Models\Invoice;
 use App\Models\Party;
@@ -35,6 +37,8 @@ use Illuminate\Support\Facades\DB;
 class ReportingService
 {
     private const DEBIT_NORMAL = ['asset', 'expense'];
+
+    public function __construct(private DepreciationRunService $depreciation) {}
 
     // =========================================================================
     // Parameter convention (§10.1): point-in-time reports default to the
@@ -573,5 +577,149 @@ class ReportingService
             ->map(fn ($ba) => ['id' => $ba->id, 'bank_name' => $ba->bank_name, 'account_number' => $ba->account_number]);
 
         return ['as_of' => now()->toDateTimeString(), 'total' => (string) $total, 'bank_accounts' => $bankAccounts->all()];
+    }
+
+    // =========================================================================
+    // §10.1/§3.12 (fixed-assets-plant): Fixed Asset Register, Depreciation Schedule
+    // =========================================================================
+
+    /**
+     * §10.1: "One row per Asset ... accumulated depreciation as of the
+     * report date (summed from AssetDepreciationEntry, same 'computed not
+     * stored' principle as stock_ledger)." Reads each AssetDepreciationEntry's
+     * own stored accumulated_depreciation (a running total already, not
+     * re-summed from individual amounts) as of the latest entry whose
+     * period doesn't exceed $asOfDate - exactly how the Trial Balance/
+     * Balance Sheet above read a running ledger balance as of a date.
+     */
+    public function fixedAssetRegister(Tenant $tenant, \Carbon\CarbonInterface $asOfDate): array
+    {
+        $assets = Asset::where('tenant_id', $tenant->id)
+            ->with(['category', 'components.depreciationEntries', 'depreciationEntries'])
+            ->get();
+
+        $rows = $assets->map(function (Asset $asset) use ($asOfDate) {
+            $accumulated = $this->accumulatedDepreciationAsOf($asset, $asOfDate);
+
+            return [
+                'asset_id' => $asset->id,
+                'asset_number' => $asset->asset_number,
+                'name' => $asset->name,
+                'category' => $asset->category->name,
+                'date_of_purchase' => $asset->date_of_purchase->toDateString(),
+                'purchase_cost' => (string) $asset->purchase_cost,
+                'accumulated_depreciation' => (string) $accumulated,
+                'net_book_value' => (string) $asset->purchase_cost->sub($accumulated),
+                'location_id' => $asset->location_id,
+                'custodian_party_id' => $asset->custodian_party_id,
+                'status' => $asset->status,
+            ];
+        });
+
+        return ['as_of' => $asOfDate->toDateString(), 'assets' => $rows->all()];
+    }
+
+    /**
+     * Compared as calendar-date strings, not Carbon instant comparison -
+     * period is cast in the app's storage timezone (UTC) while $asOfDate
+     * may come from BusinessTime (Africa/Nairobi); comparing instants
+     * directly can flip the result near midnight even when both
+     * represent the same date.
+     */
+    private function accumulatedDepreciationAsOf(Asset $asset, \Carbon\CarbonInterface $asOfDate): Money
+    {
+        $asOfDateString = $asOfDate->toDateString();
+
+        if ($asset->components->isNotEmpty()) {
+            return Money::sum(...$asset->components->map(
+                fn ($component) => $component->depreciationEntries->filter(fn ($e) => $e->period->toDateString() <= $asOfDateString)->sortBy('period')->last()?->accumulated_depreciation ?? Money::zero()
+            )->all());
+        }
+
+        return $asset->depreciationEntries->filter(fn ($e) => $e->period->toDateString() <= $asOfDateString)->sortBy('period')->last()?->accumulated_depreciation ?? Money::zero();
+    }
+
+    /**
+     * §10.1: "Two views, not one: Planned ... recalculated forward
+     * whenever a revaluation or lifespan change occurs. Actual - the
+     * posted AssetDepreciationEntry rows." Planned is a pure projection
+     * (no persistence) from the asset's CURRENT fields using the same
+     * formulas DepreciationRunService itself posts with - a revaluation
+     * or lifespan change already updates those fields and
+     * schedule_reset_at, so this always reflects the latest schedule
+     * without needing its own separate recalculation trigger.
+     */
+    /**
+     * Operates on one depreciation subject at a time - an Asset with no
+     * AssetComponent rows, or a single AssetComponent - matching exactly
+     * what DepreciationRunService itself depreciates independently. A
+     * componentised Asset's full schedule is each of its components'
+     * schedules side by side, not one blended projection (§3.12's own
+     * "not one blended schedule" rule applies here too).
+     */
+    public function depreciationSchedulePlanned(Asset|AssetComponent $subject): array
+    {
+        $depreciableBase = $subject->purchase_cost->sub($subject->residual_value);
+        $accumulated = $subject instanceof Asset ? $subject->currentAccumulatedDepreciation() : $this->latestAccumulated($subject->depreciationEntries);
+        $nbv = $subject->purchase_cost->sub($accumulated);
+        $monthsAlreadyRun = $this->monthsSinceScheduleReset($subject);
+
+        $period = BusinessTime::today()->copy()->startOfMonth();
+        $rows = [];
+        $safetyCap = $subject->useful_life_years * 12 * 2; // never project past twice the stated life
+
+        for ($i = 0; $i < $safetyCap && $nbv->greaterThan($subject->residual_value); $i++) {
+            $amount = $this->depreciation->monthlyDepreciation($subject, $depreciableBase, $nbv, $monthsAlreadyRun + $i);
+            $maxAllowed = $nbv->sub($subject->residual_value);
+            if ($amount->greaterThan($maxAllowed)) {
+                $amount = $maxAllowed;
+            }
+            if (! $amount->isPositive()) {
+                break;
+            }
+
+            $accumulated = $accumulated->add($amount);
+            $nbv = $nbv->sub($amount);
+
+            $rows[] = [
+                'period' => $period->toDateString(),
+                'depreciation_amount' => (string) $amount,
+                'accumulated_depreciation' => (string) $accumulated,
+                'net_book_value' => (string) $nbv,
+            ];
+            $period = $period->copy()->addMonth();
+        }
+
+        return $rows;
+    }
+
+    public function depreciationScheduleActual(Asset|AssetComponent $subject): array
+    {
+        $subject->loadMissing('depreciationEntries');
+
+        return $subject->depreciationEntries->sortBy('period')->values()->map(fn ($e) => [
+            'period' => $e->period->toDateString(),
+            'depreciation_amount' => (string) $e->depreciation_amount,
+            'accumulated_depreciation' => (string) $e->accumulated_depreciation,
+            'net_book_value' => (string) $e->net_book_value,
+        ])->all();
+    }
+
+    private function latestAccumulated(\Illuminate\Support\Collection $entries): Money
+    {
+        return $entries->sortBy('period')->last()?->accumulated_depreciation ?? Money::zero();
+    }
+
+    private function monthsSinceScheduleReset(Asset|AssetComponent $subject): int
+    {
+        $subject->loadMissing('depreciationEntries');
+
+        if (! $subject->schedule_reset_at) {
+            return $subject->depreciationEntries->count();
+        }
+
+        $resetAtString = $subject->schedule_reset_at->toDateString();
+
+        return $subject->depreciationEntries->filter(fn ($e) => $e->period->toDateString() >= $resetAtString)->count();
     }
 }

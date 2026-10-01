@@ -13,6 +13,16 @@
 // any part of that flow needs to see the whole thing to complete it),
 // 'Manufacturing' (ProductionOrder - manufacturing branch, mirrors
 // ProductionOrderPolicy's own Admin/Warehouse/Procurement default),
+// 'Resourcing' (Resource/ResourceAssignment - labour-resourcing branch,
+// mirrors §11's "Project Manager - Project, Milestone, Resource
+// Assignment"), 'Projects' (Project/Milestone/VariationOrder/Defect -
+// projects-milestones-ui branch, same §11 line plus "Site Supervisor -
+// Project Utilization, Quality Sign Off" for the narrower utilize/sign-
+// off/defect actions), 'Assets' (Asset/AssetComponent/AssetRevaluation/
+// AssetDisposal/AssetAssignment/EquipmentHireContract - fixed-assets-plant
+// branch, mirrors §11's "Asset Manager" line), 'HR' (Employee/
+// EmploymentContract/Timesheet/LeaveRequest/PayrollRun/StatutoryRemittance/
+// P9A/P10 - hr-payroll branch, mirrors §11's "HR Manager" line),
 // 'Dashboard' (every role can at least see their own dashboard).
 export function buildAbilityRulesForRole(roleName) {
   if (roleName === 'admin')
@@ -27,6 +37,18 @@ export function buildAbilityRulesForRole(roleName) {
 
   if (['warehouse', 'procurement'].includes(roleName))
     rules.push({ action: 'manage', subject: 'Manufacturing' })
+
+  if (roleName === 'project_manager')
+    rules.push({ action: 'manage', subject: 'Resourcing' })
+
+  if (['project_manager', 'site_supervisor'].includes(roleName))
+    rules.push({ action: 'manage', subject: 'Projects' })
+
+  if (roleName === 'asset_manager')
+    rules.push({ action: 'manage', subject: 'Assets' })
+
+  if (roleName === 'hr_manager')
+    rules.push({ action: 'manage', subject: 'HR' })
 
   return rules
 }

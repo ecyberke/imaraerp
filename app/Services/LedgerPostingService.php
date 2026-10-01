@@ -388,15 +388,21 @@ class LedgerPostingService
     }
 
     // --- §7: PayrollRun approved ---
-    // KNOWN SIMPLIFICATION, flagged rather than hidden (same as the
-    // reference file): §7 requires one JournalLine *per project* an
-    // employee's Timesheets touched that period. hr-payroll's own exit
-    // criterion (execution_plan.md) is where the real per-project split
-    // gets enforced and tested - this method takes a single optional
-    // analytic tag for the whole run until that branch exists.
+    // The reference file's own documented simplification (a single
+    // JournalLine for the whole run) is kept as the default so the
+    // reference test suite (LedgerPostingServiceTest.php) keeps calling
+    // this exactly as written - $grossPayByAnalyticAccountCode is an
+    // appended, backward-compatible optional param (same pattern as
+    // postInvoiceRaised's precomputed VAT/retention overrides). hr-payroll
+    // (PayrollRunService) is the first real caller to pass it, satisfying
+    // that branch's own exit criterion: "one JournalLine per AnalyticAccount
+    // a Timesheet touched that period."
     //
     // @param array<string, Money> $employeeDeductions
     // @param array<string, Money> $employerContributions no 'shif' key expected
+    // @param ?array<string, Money> $grossPayByAnalyticAccountCode keyed by
+    //     analytic account cost_code, or '' for gross pay not attributable
+    //     to any project - must sum to $grossPay when provided.
     public function postPayrollRun(
         string $payrollRunReference,
         Money $grossPay,
@@ -405,6 +411,7 @@ class LedgerPostingService
         Money $otherDeductions,
         Money $nitaAmount,
         ?string $analyticAccountCode = null,
+        ?array $grossPayByAnalyticAccountCode = null,
     ): EntryInput {
         if (array_key_exists('shif', $employerContributions)) {
             throw new InvalidArgumentException(
@@ -423,9 +430,23 @@ class LedgerPostingService
         $housing = ($employeeDeductions['housing'] ?? Money::zero())->add($employerContributions['housing'] ?? Money::zero());
         $helb = $employeeDeductions['helb'] ?? Money::zero();
 
-        return new EntryInput(
-            'payroll_run_approved', 'PayrollRun', $payrollRunReference,
-            new LineInput('Salary/Wages Expense', debit: $grossPay, analyticAccountCode: $analyticAccountCode),
+        if ($grossPayByAnalyticAccountCode !== null) {
+            $sum = Money::sum(...array_values($grossPayByAnalyticAccountCode));
+            if (! $sum->equals($grossPay)) {
+                throw new InvalidArgumentException('grossPayByAnalyticAccountCode must sum to grossPay.');
+            }
+            $salaryLines = [];
+            foreach ($grossPayByAnalyticAccountCode as $code => $amount) {
+                if ($amount->isPositive()) {
+                    $salaryLines[] = new LineInput('Salary/Wages Expense', debit: $amount, analyticAccountCode: $code === '' ? null : $code);
+                }
+            }
+        } else {
+            $salaryLines = [new LineInput('Salary/Wages Expense', debit: $grossPay, analyticAccountCode: $analyticAccountCode)];
+        }
+
+        $lines = [
+            ...$salaryLines,
             new LineInput('Employer Statutory Expense', debit: $employerStatutoryTotal),
             new LineInput('NITA Expense', debit: $nitaAmount),
             new LineInput('PAYE Payable', credit: $paye),
@@ -436,7 +457,9 @@ class LedgerPostingService
             new LineInput('NITA Payable', credit: $nitaAmount),
             new LineInput('Other Deductions Payable', credit: $otherDeductions),
             new LineInput('Net Pay Payable', credit: $netPay),
-        );
+        ];
+
+        return new EntryInput('payroll_run_approved', 'PayrollRun', $payrollRunReference, ...$lines);
     }
 
     // --- §7: Statutory remittance ---
