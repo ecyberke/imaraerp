@@ -51,6 +51,7 @@ class StockLedger extends Model
         'unit_cost_cents',
         'reference_type',
         'reference_id',
+        'is_opening_balance',
     ];
 
     protected $hidden = [
@@ -66,6 +67,7 @@ class StockLedger extends Model
         return [
             'quantity' => 'decimal:4',
             'unit_cost_cents' => MoneyCast::class,
+            'is_opening_balance' => 'boolean',
         ];
     }
 
