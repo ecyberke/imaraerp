@@ -4,9 +4,13 @@ namespace App\Models;
 
 use App\Casts\MoneyCast;
 use App\Models\Scopes\TenantScope;
+use App\Observers\AuditLogObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
+/** §3.10 names Invoice as one of AuditLog's observed entities from the start - see PurchaseOrder's own note on why this wasn't actually true until now. */
+#[ObservedBy(AuditLogObserver::class)]
 class Invoice extends Model
 {
     public const PAYMENT_TERMS = ['credit', 'cash'];

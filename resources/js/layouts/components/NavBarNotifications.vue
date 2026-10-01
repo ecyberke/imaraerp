@@ -1,84 +1,57 @@
 <script setup>
-import avatar4 from '@images/avatars/avatar-4.png'
-import avatar5 from '@images/avatars/avatar-5.png'
+/* eslint-disable camelcase -- these object keys are literal Laravel API notification `type`/field values (snake_case is the real contract), not JS identifiers to rename. */
+const TYPE_META = {
+  reorder_alert: { title: 'Reorder Alert', icon: 'ri-refresh-line', color: 'warning' },
+  approval_pending: { title: 'Approval Pending', icon: 'ri-time-line', color: 'primary' },
+  qc_failure: { title: 'QC Failure', icon: 'ri-error-warning-line', color: 'error' },
+  milestone_due: { title: 'Milestone Due', icon: 'ri-flag-line', color: 'info' },
+  retention_release_due: { title: 'Retention Release Due', icon: 'ri-wallet-3-line', color: 'info' },
+  casual_conversion_due: { title: 'Casual Conversion Due', icon: 'ri-user-line', color: 'warning' },
+  dlp_ready_to_close: { title: 'DLP Ready to Close', icon: 'ri-checkbox-circle-line', color: 'success' },
+  bom_variance_exceeded: { title: 'BOM Variance Exceeded', icon: 'ri-stack-line', color: 'error' },
+  hire_invoice_mismatch: { title: 'Hire Invoice Mismatch', icon: 'ri-file-warning-line', color: 'error' },
+}
 
-const notifications = ref([
-  {
-    id: 1,
-    img: avatar4,
-    title: 'Congratulation Flora! 🎉',
-    subtitle: 'Won the monthly best seller badge',
-    time: 'Today',
-    isSeen: true,
-  },
-  {
-    id: 2,
-    text: 'Cecilia Becker',
-    title: 'Cecilia Becker',
-    subtitle: 'Accepted your connection',
-    time: '12h ago',
-    isSeen: false,
-    color: 'primary',
-  },
-  {
-    id: 3,
-    img: avatar5,
-    title: 'New message received 👋🏻',
-    subtitle: 'You have 10 unread messages',
-    time: '11 Aug',
-    isSeen: true,
-  },
-  {
-    id: 4,
-    icon: 'ri-bar-chart-line',
-    title: 'Monthly report generated',
-    subtitle: 'July month financial report is generated',
-    time: 'Apr 24, 10:30 AM',
-    isSeen: false,
-    color: 'info',
-  },
-  {
-    id: 5,
-    text: 'Meta Gadgets',
-    title: 'Application has been approved 🚀',
-    subtitle: 'Your Meta Gadgets project application has been approved.',
-    time: 'Feb 17, 12:17 PM',
-    isSeen: false,
-    color: 'success',
-  },
-  {
-    id: 6,
-    icon: 'ri-mail-line',
-    title: 'New message from Harry',
-    subtitle: 'You have new message from Harry',
-    time: 'Jan 6, 1:48 PM',
-    isSeen: true,
-    color: 'error',
-  },
-])
+const raw = ref([])
+
+const notifications = computed(() => raw.value
+  .filter(n => n.sent_at)
+  .map(n => ({
+    id: n.id,
+    icon: TYPE_META[n.type]?.icon ?? 'ri-notification-2-line',
+    color: TYPE_META[n.type]?.color ?? 'secondary',
+    title: TYPE_META[n.type]?.title ?? n.type,
+    subtitle: n.message,
+    time: n.sent_at?.slice(0, 16).replace('T', ' ') ?? '',
+    isSeen: !!n.read_at,
+  })))
+
+async function load() {
+  try {
+    raw.value = await $api('/notifications')
+  } catch {
+    raw.value = []
+  }
+}
 
 const removeNotification = notificationId => {
-  notifications.value.forEach((item, index) => {
-    if (notificationId === item.id)
-      notifications.value.splice(index, 1)
-  })
+  raw.value = raw.value.filter(item => item.id !== notificationId)
 }
 
-const markRead = notificationId => {
-  notifications.value.forEach(item => {
-    notificationId.forEach(id => {
-      if (id === item.id)
-        item.isSeen = true
-    })
+async function markRead(notificationIds) {
+  raw.value.forEach(item => {
+    if (notificationIds.includes(item.id))
+      item.read_at = item.read_at ?? new Date().toISOString()
   })
+  await Promise.all(notificationIds.map(id => $api(`/notifications/${id}/mark-read`, { method: 'POST' }).catch(() => {})))
 }
 
-const markUnRead = notificationId => {
-  notifications.value.forEach(item => {
-    notificationId.forEach(id => {
-      if (id === item.id)
-        item.isSeen = false
-    })
+// No backend endpoint marks a notification unread again - this is a
+// client-only UI toggle for this session, not persisted.
+const markUnRead = notificationIds => {
+  raw.value.forEach(item => {
+    if (notificationIds.includes(item.id))
+      item.read_at = null
   })
 }
 
@@ -86,6 +59,8 @@ const handleNotificationClick = notification => {
   if (!notification.isSeen)
     markRead([notification.id])
 }
+
+onMounted(load)
 </script>
 
 <template>

@@ -4,9 +4,13 @@ namespace App\Models;
 
 use App\Casts\MoneyCast;
 use App\Models\Scopes\TenantScope;
+use App\Observers\AuditLogObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 
+/** §3.10 names Payment as one of AuditLog's observed entities from the start - see PurchaseOrder's own note on why this wasn't actually true until now. */
+#[ObservedBy(AuditLogObserver::class)]
 class Payment extends Model
 {
     public const DIRECTIONS = ['receipt', 'disbursement'];
@@ -30,6 +34,8 @@ class Payment extends Model
         'received_at',
         'posting_date',
         'is_opening_balance',
+        'is_reconciled',
+        'reconciled_at',
     ];
 
     protected $hidden = ['amount_cents', 'wht_amount_cents'];
@@ -43,6 +49,8 @@ class Payment extends Model
             'received_at' => 'datetime',
             'posting_date' => 'date',
             'is_opening_balance' => 'boolean',
+            'is_reconciled' => 'boolean',
+            'reconciled_at' => 'datetime',
             'amount_cents' => MoneyCast::class,
             'wht_amount_cents' => MoneyCast::class,
         ];

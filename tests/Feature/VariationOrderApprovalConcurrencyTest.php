@@ -41,6 +41,7 @@ class VariationOrderApprovalConcurrencyTest extends TestCase
             DB::table('boqs')->where('tenant_id', $tenantId)->delete();
             DB::table('projects')->where('tenant_id', $tenantId)->delete();
             DB::table('parties')->where('tenant_id', $tenantId)->delete();
+            DB::table('approval_limits')->where('tenant_id', $tenantId)->delete();
             DB::table('roles')->where('tenant_id', $tenantId)->delete();
             DB::table('tenants')->where('id', $tenantId)->delete();
         }

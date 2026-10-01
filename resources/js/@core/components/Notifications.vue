@@ -202,6 +202,7 @@ const totalUnreadNotifications = computed(() => props.notifications.filter(item 
           <VBtn
             block
             size="small"
+            to="/notifications"
           >
             View All Notifications
           </VBtn>

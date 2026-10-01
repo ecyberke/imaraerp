@@ -3,13 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\PurchaseOrder;
-use App\Support\Money;
+use App\Models\User;
+use App\Services\PurchaseOrderService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class PurchaseOrderController extends Controller
 {
+    public function __construct(private PurchaseOrderService $purchaseOrders) {}
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', PurchaseOrder::class);
@@ -17,13 +19,7 @@ class PurchaseOrderController extends Controller
         return PurchaseOrder::where('tenant_id', $request->user()->tenant_id)->with('lines')->get();
     }
 
-    /**
-     * Full ApprovalLimit-gated approval chain (§3.10) is a later branch
-     * (approval-notification-compliance, Phase 2) - a PO is created
-     * directly in 'ordered' status here, skipping the intermediate
-     * pending_approval/approved states this branch doesn't build the
-     * approval mechanism for yet.
-     */
+    /** §5.2/approval-notification-compliance: created in 'requisitioned' - the real approval chain is submit-for-approval/approve/reject/mark-ordered below. */
     public function store(Request $request)
     {
         $this->authorize('create', PurchaseOrder::class);
@@ -42,30 +38,7 @@ class PurchaseOrderController extends Controller
             'lines.*.unit_cost' => ['required', 'numeric', 'min:0'],
         ]);
 
-        $po = DB::transaction(function () use ($data, $tenantId) {
-            $po = PurchaseOrder::create([
-                'tenant_id' => $tenantId,
-                'purchase_requisition_id' => $data['purchase_requisition_id'] ?? null,
-                'party_id' => $data['party_id'],
-                'currency_id' => $data['currency_id'],
-                'exchange_rate' => $data['exchange_rate'] ?? 1,
-                'status' => 'ordered',
-            ]);
-
-            foreach ($data['lines'] as $line) {
-                $po->lines()->create([
-                    'tenant_id' => $tenantId,
-                    'purchase_requisition_line_id' => $line['purchase_requisition_line_id'] ?? null,
-                    'item_id' => $line['item_id'],
-                    'quantity_ordered' => $line['quantity_ordered'],
-                    'unit_cost_cents' => Money::fromMajor($line['unit_cost']),
-                ]);
-            }
-
-            return $po;
-        });
-
-        return response()->json($po->load('lines'), 201);
+        return response()->json($this->purchaseOrders->create($request->user()->tenant, $data), 201);
     }
 
     public function show(PurchaseOrder $purchaseOrder)
@@ -73,5 +46,42 @@ class PurchaseOrderController extends Controller
         $this->authorize('view', $purchaseOrder);
 
         return $purchaseOrder->load('lines', 'grns.lines');
+    }
+
+    public function submitForApproval(PurchaseOrder $purchaseOrder)
+    {
+        $this->authorize('update', $purchaseOrder);
+
+        return response()->json($this->purchaseOrders->submitForApproval($purchaseOrder));
+    }
+
+    public function approve(Request $request, PurchaseOrder $purchaseOrder)
+    {
+        $this->authorize('update', $purchaseOrder);
+
+        $tenantId = $request->user()->tenant_id;
+        $data = $request->validate([
+            'second_approver_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
+        ]);
+
+        /** @var User $approver */
+        $approver = $request->user();
+        $secondApprover = isset($data['second_approver_id']) ? User::where('tenant_id', $tenantId)->find($data['second_approver_id']) : null;
+
+        return response()->json($this->purchaseOrders->approve($purchaseOrder, $approver, $secondApprover));
+    }
+
+    public function reject(PurchaseOrder $purchaseOrder)
+    {
+        $this->authorize('update', $purchaseOrder);
+
+        return response()->json($this->purchaseOrders->reject($purchaseOrder));
+    }
+
+    public function markOrdered(PurchaseOrder $purchaseOrder)
+    {
+        $this->authorize('update', $purchaseOrder);
+
+        return response()->json($this->purchaseOrders->markOrdered($purchaseOrder));
     }
 }

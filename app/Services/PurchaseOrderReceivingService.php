@@ -7,7 +7,6 @@ use App\Models\GRNLine;
 use App\Models\PurchaseOrderLine;
 use App\Models\QualityCheck;
 use App\Models\User;
-use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -21,9 +20,7 @@ use Illuminate\Support\Facades\DB;
  */
 class PurchaseOrderReceivingService
 {
-    public function __construct(private StockReceivingService $receiving)
-    {
-    }
+    public function __construct(private StockReceivingService $receiving, private NotificationService $notifications) {}
 
     /**
      * §3.4: "stock_ledger.unit_cost is always recorded in base currency
@@ -79,6 +76,14 @@ class PurchaseOrderReceivingService
             $grnLine->update(['quarantine_status' => $result === 'pass' ? 'passed' : 'failed']);
             $grnLine->grn->refreshQuarantineStatus();
             $this->refreshPurchaseOrderQcStatus($grnLine->grn->purchaseOrder);
+
+            if ($result !== 'pass') {
+                $this->notifications->notifyRole(
+                    $grnLine->tenant, 'warehouse', 'qc_failure',
+                    "GRNLine #{$grnLine->id} (PO #{$grnLine->grn->purchase_order_id}) failed QC - disposition: {$disposition}.",
+                    GRNLine::class, $grnLine->id,
+                );
+            }
 
             return $qc;
         });

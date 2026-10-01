@@ -19,19 +19,21 @@ use Illuminate\Support\Facades\DB;
  * approved -> executed is a separate manual confirmation (site work
  * actually done) distinct from commercial approval.
  *
- * §12 open-decision #7 says VariationOrder approval "reuses ApprovalLimit,
- * thresholded by amount_delta" - but ApprovalLimit doesn't exist yet
- * (deferred to approval-notification-compliance, a later Phase 2 branch).
- * approve()/reject() below take an explicit $approver (and optional
- * $secondApprover) instead of looking ApprovalLimit up, the same forward-
- * reference-parameter pattern ProgressClaimService used for
- * ContractRetentionTerms before that existed either - once ApprovalLimit
- * ships, the lookup replaces the caller-supplied approver, not the other
- * way round.
+ * §12 open-decision #7: VariationOrder approval "reuses ApprovalLimit,
+ * thresholded by amount_delta" - now real (approval-notification-
+ * compliance). approve() validates the given $approver against
+ * ApprovalLimit(entity_type=variation_order) rather than trusting it
+ * blindly, and requires a genuinely different $secondApprover (maker-
+ * checker, §3.10) once amount_delta crosses that limit's
+ * requires_second_approval_above.
  */
 class VariationOrderService
 {
-    public function __construct(private MilestoneService $milestones) {}
+    public function __construct(
+        private MilestoneService $milestones,
+        private ApprovalLimitService $approvalLimits,
+        private NotificationService $notifications,
+    ) {}
 
     public function create(Project $project, string $description): VariationOrder
     {
@@ -120,6 +122,19 @@ class VariationOrderService
     {
         if ($vo->status !== 'submitted') {
             throw new \DomainException("Cannot approve a VariationOrder with status '{$vo->status}'.");
+        }
+
+        $decision = $this->approvalLimits->evaluate($vo->tenant, 'variation_order', $approver, $vo->amount_delta->abs());
+        if (! $decision['approved']) {
+            throw new \DomainException($decision['reason']);
+        }
+        if ($decision['requires_second_approval']) {
+            if (! $secondApprover) {
+                $this->notifications->notifyApprovalPendingForRole($vo->tenant, $decision['second_approver_role_id'], VariationOrder::class, $vo->id, "VariationOrder {$vo->variation_number} needs a second approval.");
+
+                throw new \DomainException('This VariationOrder requires a second approval above the configured threshold.');
+            }
+            $this->approvalLimits->assertSecondApprover($approver, $secondApprover, $decision['second_approver_role_id']);
         }
 
         return DB::transaction(function () use ($vo, $approver, $secondApprover) {

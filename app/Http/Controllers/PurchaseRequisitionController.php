@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\PurchaseRequisition;
+use App\Models\User;
+use App\Services\PurchaseRequisitionService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class PurchaseRequisitionController extends Controller
 {
+    public function __construct(private PurchaseRequisitionService $requisitions) {}
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', PurchaseRequisition::class);
@@ -58,12 +62,20 @@ class PurchaseRequisitionController extends Controller
         return $purchaseRequisition->load('lines');
     }
 
-    public function approve(PurchaseRequisition $purchaseRequisition)
+    public function approve(Request $request, PurchaseRequisition $purchaseRequisition)
     {
         $this->authorize('update', $purchaseRequisition);
 
-        $purchaseRequisition->update(['status' => 'approved']);
+        /** @var User $user */
+        $user = $request->user();
 
-        return $purchaseRequisition;
+        return response()->json($this->requisitions->approve($purchaseRequisition, $user));
+    }
+
+    public function reject(PurchaseRequisition $purchaseRequisition)
+    {
+        $this->authorize('update', $purchaseRequisition);
+
+        return response()->json($this->requisitions->reject($purchaseRequisition));
     }
 }

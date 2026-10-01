@@ -16,9 +16,7 @@ use App\Models\Warehouse;
  */
 class DemandTriggerService
 {
-    public function __construct(private StockValuationService $valuation)
-    {
-    }
+    public function __construct(private StockValuationService $valuation, private NotificationService $notifications) {}
 
     /**
      * quantity_needed's exact formula isn't specified in the doc beyond
@@ -44,7 +42,7 @@ class DemandTriggerService
             return $existing;
         }
 
-        return DemandTrigger::create([
+        $trigger = DemandTrigger::create([
             'tenant_id' => $item->tenant_id,
             'source_type' => 'reorder_level',
             'item_id' => $item->id,
@@ -52,5 +50,13 @@ class DemandTriggerService
             'quantity_needed' => bcsub((string) $item->reorder_level, $onHand, 4),
             'status' => 'open',
         ]);
+
+        $this->notifications->notifyRole(
+            $item->tenant, 'procurement', 'reorder_alert',
+            "{$item->name} at {$warehouse->name} has fallen below its reorder level - {$trigger->quantity_needed} needed.",
+            DemandTrigger::class, $trigger->id,
+        );
+
+        return $trigger;
     }
 }

@@ -3,13 +3,20 @@
 namespace App\Models;
 
 use App\Models\Scopes\TenantScope;
+use App\Observers\AuditLogObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * §5.2 state machine: requisitioned -> pending_approval -> approved ->
  * ordered -> partially_received -> received -> quarantined ->
- * (qc_passed -> stocked | qc_failed -> returned).
+ * (qc_passed -> stocked | qc_failed -> returned). §3.10 names PO as one
+ * of AuditLog's observed entities from the start - never actually
+ * attached until now (approval-notification-compliance; see this
+ * branch's own note on AuditLogObserver being wired to DummyRecord only
+ * despite that docblock's broader claim).
  */
+#[ObservedBy(AuditLogObserver::class)]
 class PurchaseOrder extends Model
 {
     public const STATUSES = [
@@ -25,11 +32,14 @@ class PurchaseOrder extends Model
         'currency_id',
         'exchange_rate',
         'status',
+        'approved_by',
+        'second_approved_by',
+        'approved_at',
     ];
 
     protected function casts(): array
     {
-        return ['exchange_rate' => 'decimal:6'];
+        return ['exchange_rate' => 'decimal:6', 'approved_at' => 'datetime'];
     }
 
     protected static function booted(): void
@@ -40,6 +50,16 @@ class PurchaseOrder extends Model
     public function purchaseRequisition()
     {
         return $this->belongsTo(PurchaseRequisition::class);
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function secondApprovedBy()
+    {
+        return $this->belongsTo(User::class, 'second_approved_by');
     }
 
     public function party()

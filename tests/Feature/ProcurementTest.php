@@ -123,7 +123,20 @@ class ProcurementTest extends TestCase
                 'unit_cost' => 350,
             ]],
         ])->assertCreated();
-        $this->assertSame('ordered', $po->json('status'));
+        $this->assertSame('requisitioned', $po->json('status'));
+
+        // §5.2/approval-notification-compliance: the real ApprovalLimit
+        // -gated chain - requisitioned -> pending_approval -> approved ->
+        // ordered - 350x100 = 35,000 is well under procurement's seeded
+        // 500,000 limit and its 200,000 second-approval threshold, so one
+        // approval is enough.
+        $this->withHeaders($headers)->postJson("/api/purchase-orders/{$po->json('id')}/submit-for-approval")
+            ->assertOk()->assertJsonPath('status', 'pending_approval');
+        $this->withHeaders($headers)->postJson("/api/purchase-orders/{$po->json('id')}/approve")
+            ->assertOk()->assertJsonPath('status', 'approved');
+        $ordered = $this->withHeaders($headers)->postJson("/api/purchase-orders/{$po->json('id')}/mark-ordered")
+            ->assertOk();
+        $this->assertSame('ordered', $ordered->json('status'));
 
         $grn = $this->withHeaders($headers)
             ->postJson("/api/purchase-orders/{$po->json('id')}/goods-receipt-notes", [])

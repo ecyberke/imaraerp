@@ -72,7 +72,13 @@ onMounted(loadAll)
       :items="accounts"
       :loading="loading"
       item-value="id"
-    />
+    >
+      <template #item.bank_name="{ item }">
+        <RouterLink :to="{ name: 'sales-billing-bank-accounts-id', params: { id: item.id } }">
+          {{ item.bank_name }}
+        </RouterLink>
+      </template>
+    </VDataTable>
 
     <VDialog
       v-model="dialog"

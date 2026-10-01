@@ -17,6 +17,7 @@ class CreditApproval extends Model
         'invoice_id',
         'requested_amount_cents',
         'approved_by',
+        'second_approved_by',
         'approved_at',
         'notes',
         'status',
@@ -57,6 +58,11 @@ class CreditApproval extends Model
     public function approvedBy()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function secondApprovedBy()
+    {
+        return $this->belongsTo(User::class, 'second_approved_by');
     }
 
     public function tenant()
