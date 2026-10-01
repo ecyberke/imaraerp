@@ -92,6 +92,11 @@ class SalesOrder extends Model
         return $this->belongsTo(Lead::class);
     }
 
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+
     public function party()
     {
         return $this->belongsTo(Party::class);
@@ -130,15 +135,12 @@ class SalesOrder extends Model
     /**
      * §5.1: Direct Sale/Manufacture-for-Sale follow the drawn state
      * machine path unconditionally; Project/Manufacture-for-Project gate
-     * `closed` on Project.status=closed instead. Project doesn't exist
-     * yet (forward reference), so this only asserts the gate is refused
-     * when project_id is unset - the actual Project.status check is
-     * wired in once projects-milestones-ui lands.
+     * `closed` on Project.status=closed instead (projects-milestones-ui).
      */
     public function canClose(): bool
     {
         if (in_array($this->supply_path, ['project', 'manufacture_for_project'], true)) {
-            return $this->project_id !== null;
+            return $this->project_id !== null && $this->project?->status === 'closed';
         }
 
         return true;

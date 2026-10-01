@@ -5,7 +5,8 @@ import forms from './forms'
 import labourResourcing from './labour-resourcing'
 import manufacturing from './manufacturing'
 import others from './others'
+import projects from './projects'
 import salesBilling from './sales-billing'
 import uiElements from './ui-elements'
 
-export default [...dashboard, ...salesBilling, ...manufacturing, ...labourResourcing, ...appsAndPages, ...uiElements, ...forms, ...charts, ...others]
+export default [...dashboard, ...salesBilling, ...manufacturing, ...labourResourcing, ...projects, ...appsAndPages, ...uiElements, ...forms, ...charts, ...others]

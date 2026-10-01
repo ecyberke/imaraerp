@@ -49,6 +49,11 @@ class BillOfMaterial extends Model
         return $this->belongsTo(Item::class, 'finished_good_item_id');
     }
 
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
     public function lines(): HasMany
     {
         return $this->hasMany(BillOfMaterialLine::class, 'bill_of_materials_id');

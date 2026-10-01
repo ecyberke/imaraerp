@@ -2,8 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Defect;
 use App\Models\RetentionAccount;
 use App\Models\RetentionRelease;
+use App\Models\SalesOrder;
+use App\Models\Subcontract;
 use App\Models\User;
 use App\Support\BusinessTime;
 use App\Support\Money;
@@ -11,15 +14,14 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * §3.9: two-stage by design (practical_completion, then dlp_end). The
- * automatic pending->ready re-evaluation the doc describes depends on
+ * automatic pending->ready re-evaluation the doc describes depended on
  * Defect (§3.7, blocks_retention), client sign-off tracking, and dispute
- * records - none of which exist yet in this codebase (Defect belongs to
- * a later branch). markReady() here is a manual stand-in for that
- * scheduled job, flagged rather than silently built as if automatic;
- * the real job replaces this call once those entities exist.
- * early_release_reason is enforced as required whenever release() fires
- * from any status other than 'ready' - the documented "manual override,
- * not an edge case" path.
+ * records - Defect now exists (projects-milestones-ui) and its
+ * blocks_retention gate is wired into markReady() below; client sign-off
+ * and dispute tracking still don't exist anywhere in this codebase, so
+ * 'blocked_client_signoff'/'blocked_dispute' remain reachable statuses
+ * with no automatic producer - still a manual override until those
+ * entities exist.
  */
 class RetentionReleaseService
 {
@@ -36,11 +38,62 @@ class RetentionReleaseService
         ]);
     }
 
+    /**
+     * §3.7: "second-stage release cannot reach 'ready' while a
+     * blocks_retention=true Defect on that project/subcontract is open
+     * or in_progress." Re-evaluates every time it's called rather than
+     * being cached, since a Defect can flip in/out of the blocking set
+     * at any time.
+     */
     public function markReady(RetentionRelease $release): RetentionRelease
     {
-        $release->update(['status' => 'ready']);
+        $blocked = $this->hasBlockingDefect($release->retentionAccount);
+
+        $release->update([
+            'status' => $blocked ? 'blocked_defects' : 'ready',
+            'block_reason' => $blocked ? 'One or more open/in-progress Defects on this project or subcontract block retention release.' : null,
+        ]);
 
         return $release->fresh();
+    }
+
+    /**
+     * RetentionAccount.contract_type/contract_id names the SalesOrder
+     * (client retention) or Subcontract (subcontractor retention) that
+     * carries the retention - neither stores project_id directly on the
+     * RetentionAccount itself, so it's resolved through whichever
+     * contract this one is.
+     */
+    private function hasBlockingDefect(RetentionAccount $account): bool
+    {
+        $projectId = null;
+        $subcontractId = null;
+
+        if ($account->contract_type === SalesOrder::class) {
+            $projectId = SalesOrder::withoutGlobalScopes()->find($account->contract_id)?->project_id;
+        } elseif ($account->contract_type === Subcontract::class) {
+            $subcontract = Subcontract::withoutGlobalScopes()->find($account->contract_id);
+            $projectId = $subcontract?->project_id;
+            $subcontractId = $subcontract?->id;
+        }
+
+        if (! $projectId && ! $subcontractId) {
+            return false;
+        }
+
+        return Defect::withoutGlobalScopes()
+            ->where('tenant_id', $account->tenant_id)
+            ->where(function ($query) use ($projectId, $subcontractId) {
+                if ($projectId) {
+                    $query->orWhere('project_id', $projectId);
+                }
+                if ($subcontractId) {
+                    $query->orWhere('subcontract_id', $subcontractId);
+                }
+            })
+            ->where('blocks_retention', true)
+            ->whereIn('status', Defect::BLOCKING_STATUSES)
+            ->exists();
     }
 
     public function release(RetentionRelease $release, ?User $releasedBy = null, ?string $earlyReleaseReason = null): RetentionRelease
