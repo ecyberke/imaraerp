@@ -62,4 +62,16 @@ class DeliveryController extends Controller
 
         return $delivery->load('lines');
     }
+
+    /**
+     * phase1-screens: the Quotation detail page needs to render every
+     * Delivery already created against an order to render its
+     * deliveries section - no list-by-order endpoint existed until now.
+     */
+    public function indexForSalesOrder(Request $request, SalesOrder $salesOrder)
+    {
+        $this->authorize('viewAny', Delivery::class);
+
+        return $salesOrder->deliveries()->with('lines')->get();
+    }
 }

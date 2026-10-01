@@ -16,7 +16,9 @@ class InvoiceController extends Controller
     {
         $this->authorize('viewAny', Invoice::class);
 
-        return Invoice::where('tenant_id', $request->user()->tenant_id)->with('lines')->get();
+        return Invoice::where('tenant_id', $request->user()->tenant_id)
+            ->when($request->query('sales_order_id'), fn ($q, $id) => $q->where('sales_order_id', $id))
+            ->with('lines')->get();
     }
 
     public function store(Request $request)

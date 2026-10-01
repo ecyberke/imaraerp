@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Party;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
@@ -29,9 +30,13 @@ class PaymentController extends Controller
             'wht_tax_code' => ['nullable', 'string'],
             'method' => ['required', 'string', Rule::in(Payment::METHODS)],
             'mpesa_reference' => ['nullable', 'string'],
+            'bank_account_id' => ['nullable', 'integer', Rule::exists('bank_accounts', 'id')->where('tenant_id', $tenantId)],
         ]);
 
         $party = Party::where('tenant_id', $tenantId)->findOrFail($data['party_id']);
+        $bankAccount = isset($data['bank_account_id'])
+            ? BankAccount::where('tenant_id', $tenantId)->findOrFail($data['bank_account_id'])
+            : null;
 
         $payment = $this->payments->receive(
             $request->user()->tenant,
@@ -43,6 +48,7 @@ class PaymentController extends Controller
             $data['method'],
             $data['mpesa_reference'] ?? null,
             $request->user(),
+            $bankAccount,
         );
 
         return response()->json($payment, 201);

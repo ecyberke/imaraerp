@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BankAccount;
 use App\Models\Invoice;
 use App\Models\Party;
 use App\Models\Payment;
@@ -39,13 +40,14 @@ class PaymentService
         string $method = 'bank_transfer',
         ?string $mpesaReference = null,
         ?User $receivedBy = null,
+        ?BankAccount $bankAccount = null,
     ): Payment {
         if ($invoiceAllocations === [] && bccomp($advanceAmount, '0', 4) <= 0) {
             throw new \InvalidArgumentException('receive() requires at least one invoice allocation or a positive advance amount.');
         }
 
         return DB::transaction(function () use (
-            $tenant, $party, $invoiceAllocations, $advanceAmount, $whtWithheldByClient, $whtTaxCodeCode, $method, $mpesaReference, $receivedBy,
+            $tenant, $party, $invoiceAllocations, $advanceAmount, $whtWithheldByClient, $whtTaxCodeCode, $method, $mpesaReference, $receivedBy, $bankAccount,
         ) {
             $wht = $whtWithheldByClient ? Money::fromMajor($whtWithheldByClient) : Money::zero();
             $advance = Money::fromMajor($advanceAmount);
@@ -72,6 +74,7 @@ class PaymentService
                     ? \App\Models\TaxCode::withoutGlobalScopes()->where('tenant_id', $tenant->id)->where('code', $whtTaxCodeCode)->value('id')
                     : null,
                 'wht_amount_cents' => $wht->isPositive() ? $wht : null,
+                'bank_account_id' => $bankAccount?->id,
                 'received_at' => now(),
                 'posting_date' => BusinessTime::today(),
             ]);

@@ -67,6 +67,6 @@ class BoqController extends Controller
     {
         $this->authorize('view', $boq);
 
-        return $boq->load('sections', 'lines', 'markups');
+        return $boq->load('sections', 'lines.measurementSheets', 'lines.item', 'markups');
     }
 }
