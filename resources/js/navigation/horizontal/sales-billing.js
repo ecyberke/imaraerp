@@ -11,6 +11,7 @@ export default [
       { title: 'Catalog', to: 'sales-billing-catalog' },
       { title: 'Customers & Suppliers', to: 'sales-billing-parties' },
       { title: 'Bank Accounts', to: 'sales-billing-bank-accounts' },
+      { title: 'Collect Payment (M-Pesa)', to: 'payments-mpesa' },
     ],
   },
 ]
