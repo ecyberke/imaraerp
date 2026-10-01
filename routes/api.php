@@ -8,9 +8,11 @@ use App\Http\Controllers\BoqController;
 use App\Http\Controllers\BoqImportStagingController;
 use App\Http\Controllers\CapitalMovementController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ChartOfAccountController;
 use App\Http\Controllers\ContractRetentionTermsController;
 use App\Http\Controllers\CreditApprovalController;
 use App\Http\Controllers\CreditNoteController;
+use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebitNoteController;
 use App\Http\Controllers\DeliveryController;
@@ -22,10 +24,12 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LandedCostController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\MeasurementSheetController;
 use App\Http\Controllers\MfaController;
 use App\Http\Controllers\OpeningBalanceBatchController;
 use App\Http\Controllers\PartyController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\ProgressClaimController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseRequisitionController;
@@ -146,6 +150,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/goods-receipt-notes/{goodsReceiptNote}/landed-costs', [LandedCostController::class, 'store'])->middleware('mfa');
     Route::post('/grn-lines/{grnLine}/quality-checks', [GoodsReceiptNoteController::class, 'recordQualityCheck'])->middleware('mfa');
 
+    Route::get('/subcontracts', [SubcontractController::class, 'index']);
     Route::post('/subcontracts', [SubcontractController::class, 'store'])->middleware('mfa');
     Route::get('/subcontracts/{subcontract}', [SubcontractController::class, 'show']);
     Route::post('/subcontracts/{subcontract}/progress-claims', [ProgressClaimController::class, 'store'])->middleware('mfa');
@@ -173,6 +178,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/sales-orders/{salesOrder}/resubmit', [SalesOrderController::class, 'resubmit'])->middleware('mfa');
     Route::post('/sales-orders/{salesOrder}/reserve-stock', [SalesOrderController::class, 'reserveStock'])->middleware('mfa');
 
+    Route::get('/sales-orders/{salesOrder}/deliveries', [DeliveryController::class, 'indexForSalesOrder']);
     Route::post('/sales-orders/{salesOrder}/deliveries', [DeliveryController::class, 'store'])->middleware('mfa');
     Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show']);
     Route::post('/deliveries/{delivery}/lines', [DeliveryController::class, 'addLine'])->middleware('mfa');
@@ -182,6 +188,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/boqs', [BoqController::class, 'index']);
     Route::post('/boqs', [BoqController::class, 'store'])->middleware('mfa');
     Route::get('/boqs/{boq}', [BoqController::class, 'show']);
+
+    Route::get('/boq-lines/{boqLine}/measurement-sheets', [MeasurementSheetController::class, 'indexForLine']);
+    Route::post('/boq-lines/{boqLine}/measurement-sheets', [MeasurementSheetController::class, 'store'])->middleware('mfa');
+    Route::post('/measurement-sheets/{measurementSheet}/certify', [MeasurementSheetController::class, 'certify'])->middleware('mfa');
 
     Route::get('/boq-import-stagings', [BoqImportStagingController::class, 'index']);
     Route::post('/boq-import-stagings', [BoqImportStagingController::class, 'store'])->middleware('mfa');
@@ -228,6 +238,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/bank-accounts', [BankAccountController::class, 'index']);
     Route::post('/bank-accounts', [BankAccountController::class, 'store'])->middleware('mfa');
 
+    Route::get('/currencies', [CurrencyController::class, 'index']);
+    Route::get('/chart-of-accounts', [ChartOfAccountController::class, 'index']);
+
     // phase1-reports-dashboards (§10/§10.1): every report/dashboard is a
     // read-only query over already-posted data, so none of these routes
     // carry 'mfa' - MFA gates *mutation*, and nothing here mutates.
@@ -247,4 +260,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboards/inventory', [DashboardController::class, 'inventory']);
     Route::get('/dashboards/procurement', [DashboardController::class, 'procurement']);
     Route::get('/dashboards/finance', [DashboardController::class, 'finance']);
+
+    // manufacturing (§3.5): ProductionOrder consumes RM per the BOM,
+    // produces FG at standard cost, and posts through ledger-core's
+    // already-built (but until now unexercised) postProductionConsumption;
+    // QualityCheck proves its own polymorphic shape against a second
+    // checkable_type (GRN/StockQuarantine was the first, inventory-core).
+    Route::get('/production-orders', [ProductionOrderController::class, 'index']);
+    Route::post('/production-orders', [ProductionOrderController::class, 'store'])->middleware('mfa');
+    Route::get('/production-orders/{productionOrder}', [ProductionOrderController::class, 'show']);
+    Route::post('/production-orders/{productionOrder}/complete', [ProductionOrderController::class, 'complete'])->middleware('mfa');
+    Route::post('/production-orders/{productionOrder}/quality-checks', [ProductionOrderController::class, 'recordQualityCheck'])->middleware('mfa');
 });
