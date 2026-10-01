@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\AnalyticAccount;
+use App\Models\Asset;
+use App\Models\AssetComponent;
 use App\Models\ChartOfAccount;
 use App\Models\Invoice;
 use App\Models\Party;
@@ -132,5 +134,33 @@ class ReportController extends Controller
         [$start, $end] = $this->range($request, $request->user()->tenant);
 
         return $this->reports->cashFlowStatement($request->user()->tenant, $start, $end);
+    }
+
+    /** §10.1 (fixed-assets-plant): authorizes against AssetPolicy, not InvoicePolicy - this report is about Asset, which has its own Policy, unlike the ledger-only reports above. */
+    public function fixedAssetRegister(Request $request)
+    {
+        $this->authorize('viewAny', Asset::class);
+
+        return $this->reports->fixedAssetRegister($request->user()->tenant, $this->asOfDate($request, $request->user()->tenant));
+    }
+
+    public function depreciationSchedule(Request $request)
+    {
+        $this->authorize('viewAny', Asset::class);
+
+        $tenantId = $request->user()->tenant_id;
+        $data = $request->validate([
+            'asset_id' => ['required_without:asset_component_id', 'integer', Rule::exists('assets', 'id')->where('tenant_id', $tenantId)],
+            'asset_component_id' => ['required_without:asset_id', 'integer', Rule::exists('asset_components', 'id')->where('tenant_id', $tenantId)],
+        ]);
+
+        $subject = isset($data['asset_component_id'])
+            ? AssetComponent::where('tenant_id', $tenantId)->findOrFail($data['asset_component_id'])
+            : Asset::where('tenant_id', $tenantId)->findOrFail($data['asset_id']);
+
+        return [
+            'planned' => $this->reports->depreciationSchedulePlanned($subject),
+            'actual' => $this->reports->depreciationScheduleActual($subject),
+        ];
     }
 }

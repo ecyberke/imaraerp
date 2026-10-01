@@ -1,4 +1,5 @@
 import apps from './apps'
+import assets from './assets'
 import charts from './charts'
 import dashboard from './dashboard'
 import forms from './forms'
@@ -11,4 +12,4 @@ import salesBilling from './sales-billing'
 import tables from './tables'
 import uiElements from './ui-elements'
 
-export default [...dashboard, ...salesBilling, ...manufacturing, ...labourResourcing, ...projects, ...apps, ...pages, ...uiElements, ...forms, ...tables, ...charts, ...others]
+export default [...dashboard, ...salesBilling, ...manufacturing, ...labourResourcing, ...projects, ...assets, ...apps, ...pages, ...uiElements, ...forms, ...tables, ...charts, ...others]
