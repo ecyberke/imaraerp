@@ -3,6 +3,7 @@ import assets from './assets'
 import charts from './charts'
 import dashboard from './dashboard'
 import forms from './forms'
+import hr from './hr'
 import labourResourcing from './labour-resourcing'
 import manufacturing from './manufacturing'
 import others from './others'
@@ -12,4 +13,4 @@ import salesBilling from './sales-billing'
 import tables from './tables'
 import uiElements from './ui-elements'
 
-export default [...dashboard, ...salesBilling, ...manufacturing, ...labourResourcing, ...projects, ...assets, ...apps, ...pages, ...uiElements, ...forms, ...tables, ...charts, ...others]
+export default [...dashboard, ...salesBilling, ...manufacturing, ...labourResourcing, ...projects, ...assets, ...hr, ...apps, ...pages, ...uiElements, ...forms, ...tables, ...charts, ...others]

@@ -20,8 +20,10 @@
 // Project Utilization, Quality Sign Off" for the narrower utilize/sign-
 // off/defect actions), 'Assets' (Asset/AssetComponent/AssetRevaluation/
 // AssetDisposal/AssetAssignment/EquipmentHireContract - fixed-assets-plant
-// branch, mirrors §11's "Asset Manager" line), 'Dashboard' (every role can
-// at least see their own dashboard).
+// branch, mirrors §11's "Asset Manager" line), 'HR' (Employee/
+// EmploymentContract/Timesheet/LeaveRequest/PayrollRun/StatutoryRemittance/
+// P9A/P10 - hr-payroll branch, mirrors §11's "HR Manager" line),
+// 'Dashboard' (every role can at least see their own dashboard).
 export function buildAbilityRulesForRole(roleName) {
   if (roleName === 'admin')
     return [{ action: 'manage', subject: 'all' }]
@@ -44,6 +46,9 @@ export function buildAbilityRulesForRole(roleName) {
 
   if (roleName === 'asset_manager')
     rules.push({ action: 'manage', subject: 'Assets' })
+
+  if (roleName === 'hr_manager')
+    rules.push({ action: 'manage', subject: 'HR' })
 
   return rules
 }
