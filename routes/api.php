@@ -22,6 +22,8 @@ use App\Http\Controllers\DefectController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DemandTriggerController;
 use App\Http\Controllers\DummyRecordController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmploymentContractController;
 use App\Http\Controllers\EquipmentHireContractController;
 use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\InvitationController;
@@ -29,15 +31,19 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LandedCostController;
 use App\Http\Controllers\LeadController;
+use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\MeasurementSheetController;
 use App\Http\Controllers\MfaController;
 use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\OpeningBalanceBatchController;
 use App\Http\Controllers\PartyController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PayrollRunController;
 use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\ProgressClaimController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\PublicHolidayController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseRequisitionController;
 use App\Http\Controllers\ReportController;
@@ -46,12 +52,15 @@ use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\RetentionReleaseController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SalesReturnController;
+use App\Http\Controllers\StatutoryRemittanceController;
 use App\Http\Controllers\StockAvailabilityController;
 use App\Http\Controllers\StockReceivingController;
 use App\Http\Controllers\StockReservationController;
 use App\Http\Controllers\SubcontractController;
 use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\SupplierReturnController;
+use App\Http\Controllers\TaxComplianceReportController;
+use App\Http\Controllers\TimesheetController;
 use App\Http\Controllers\UnitOfMeasureController;
 use App\Http\Controllers\VariationOrderController;
 use App\Http\Controllers\WarehouseController;
@@ -367,4 +376,50 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/equipment-hire-contracts', [EquipmentHireContractController::class, 'index']);
     Route::post('/equipment-hire-contracts', [EquipmentHireContractController::class, 'store'])->middleware('mfa');
     Route::post('/equipment-hire-contracts/{equipmentHireContract}/invoiced-days', [EquipmentHireContractController::class, 'recordInvoicedDays'])->middleware('mfa');
+
+    // hr-payroll (§3.11): Employee/EmploymentContract (non-overlap
+    // enforced), Timesheet (feeds both payroll and project labour cost),
+    // PayrollRun (generate -> approve -> disburse, with the real
+    // per-project gross-pay split PayrollRunService::computeAnalyticSplit()
+    // builds), FinalSettlement on termination, StatutoryRemittance
+    // clearing what PayrollRun/WHT postings create, P9A/P10.
+    Route::get('/employees', [EmployeeController::class, 'index']);
+    Route::post('/employees', [EmployeeController::class, 'store'])->middleware('mfa');
+    Route::get('/employees/{employee}', [EmployeeController::class, 'show']);
+    Route::post('/employees/{employee}/status', [EmployeeController::class, 'updateStatus'])->middleware('mfa');
+
+    Route::get('/employees/{employee}/employment-contracts', [EmploymentContractController::class, 'indexForEmployee']);
+    Route::post('/employees/{employee}/employment-contracts', [EmploymentContractController::class, 'store'])->middleware('mfa');
+    Route::post('/employment-contracts/{employmentContract}/promote', [EmploymentContractController::class, 'promote'])->middleware('mfa');
+
+    Route::get('/employees/{employee}/timesheets', [TimesheetController::class, 'indexForEmployee']);
+    Route::post('/employees/{employee}/timesheets', [TimesheetController::class, 'store'])->middleware('mfa');
+    Route::post('/timesheets/{timesheet}/approve', [TimesheetController::class, 'approve'])->middleware('mfa');
+    Route::post('/timesheets/{timesheet}/reject', [TimesheetController::class, 'reject'])->middleware('mfa');
+
+    Route::get('/leave-types', [LeaveTypeController::class, 'index']);
+    Route::post('/leave-types', [LeaveTypeController::class, 'store'])->middleware('mfa');
+
+    Route::get('/public-holidays', [PublicHolidayController::class, 'index']);
+    Route::post('/public-holidays', [PublicHolidayController::class, 'store'])->middleware('mfa');
+
+    Route::get('/employees/{employee}/leave-requests', [LeaveRequestController::class, 'indexForEmployee']);
+    Route::post('/employees/{employee}/leave-requests', [LeaveRequestController::class, 'store'])->middleware('mfa');
+    Route::post('/leave-requests/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->middleware('mfa');
+    Route::post('/leave-requests/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->middleware('mfa');
+
+    Route::get('/payroll-runs', [PayrollRunController::class, 'index']);
+    Route::post('/payroll-runs', [PayrollRunController::class, 'store'])->middleware('mfa');
+    Route::get('/payroll-runs/{payrollRun}', [PayrollRunController::class, 'show']);
+    Route::post('/payroll-runs/{payrollRun}/generate', [PayrollRunController::class, 'generate'])->middleware('mfa');
+    Route::post('/payroll-runs/{payrollRun}/approve', [PayrollRunController::class, 'approve'])->middleware('mfa');
+    Route::post('/payroll-runs/{payrollRun}/disburse-net-pay', [PayrollRunController::class, 'disburseNetPay'])->middleware('mfa');
+    Route::post('/payroll-runs/{payrollRun}/settle-employee', [PayrollRunController::class, 'settleEmployee'])->middleware('mfa');
+
+    Route::get('/statutory-remittances', [StatutoryRemittanceController::class, 'index']);
+    Route::post('/statutory-remittances', [StatutoryRemittanceController::class, 'store'])->middleware('mfa');
+    Route::post('/statutory-remittances/{statutoryRemittance}/pay', [StatutoryRemittanceController::class, 'pay'])->middleware('mfa');
+
+    Route::get('/employees/{employee}/p9a', [TaxComplianceReportController::class, 'p9a']);
+    Route::get('/p10', [TaxComplianceReportController::class, 'p10']);
 });

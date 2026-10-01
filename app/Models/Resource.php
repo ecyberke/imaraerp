@@ -27,6 +27,11 @@ class Resource extends Model
         return $this->belongsTo(Party::class);
     }
 
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
     public function assignments()
     {
         return $this->hasMany(ResourceAssignment::class);

@@ -85,6 +85,11 @@ class Project extends Model
         return $this->hasMany(EquipmentHireContract::class);
     }
 
+    public function timesheets()
+    {
+        return $this->hasMany(Timesheet::class);
+    }
+
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);
