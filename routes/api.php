@@ -28,6 +28,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmploymentContractController;
 use App\Http\Controllers\EquipmentHireContractController;
 use App\Http\Controllers\GoodsReceiptNoteController;
+use App\Http\Controllers\IntegrationCredentialController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ItemController;
@@ -38,6 +39,8 @@ use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\MeasurementSheetController;
 use App\Http\Controllers\MfaController;
 use App\Http\Controllers\MilestoneController;
+use App\Http\Controllers\MpesaStkRequestController;
+use App\Http\Controllers\MpesaWebhookController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OpeningBalanceBatchController;
 use App\Http\Controllers\PartyController;
@@ -83,6 +86,12 @@ use Illuminate\Support\Facades\Route;
 // across - the two are complementary, not duplicates.
 Route::post('/auth/login', [LoginController::class, 'login'])->middleware('throttle:30,1');
 Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept'])->middleware('throttle:30,1');
+
+// Public inbound webhook - Safaricom calls this with no Sanctum token.
+// See MpesaWebhookController's own docblock for how correlation/idempotency
+// work without an authenticated tenant on the request.
+Route::post('/webhooks/mpesa/callback', [MpesaWebhookController::class, 'callback'])
+    ->middleware('throttle:120,1')->name('webhooks.mpesa.callback');
 
 // Readiness probe (§1.1): DB + queue connectivity. Unauthenticated, like
 // Laravel's own /up liveness route - an infra probe can't hold a bearer
@@ -451,4 +460,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/parties/{party}/compliance-documents', [ComplianceDocumentController::class, 'indexForParty']);
     Route::post('/parties/{party}/compliance-documents', [ComplianceDocumentController::class, 'store'])->middleware('mfa');
+
+    // mpesa-integration (Phase 3): per-tenant Daraja credentials entered
+    // here, never hardcoded (§1.1 secret-management posture) - see
+    // IntegrationCredentialController's own docblock. The actual inbound
+    // M-Pesa callback is NOT in this group - it's public, registered
+    // above the auth:sanctum block, since Safaricom can't carry a bearer
+    // token.
+    Route::get('/integration-credentials', [IntegrationCredentialController::class, 'index']);
+    Route::put('/integration-credentials/{provider}', [IntegrationCredentialController::class, 'update'])->middleware('mfa');
+
+    Route::get('/mpesa/stk-requests', [MpesaStkRequestController::class, 'index']);
+    Route::post('/mpesa/stk-requests', [MpesaStkRequestController::class, 'store'])->middleware('mfa');
+    Route::get('/mpesa/stk-requests/{mpesaStkRequest}', [MpesaStkRequestController::class, 'show']);
 });
