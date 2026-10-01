@@ -34,6 +34,8 @@ use App\Http\Controllers\ProgressClaimController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseRequisitionController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ResourceAssignmentController;
+use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\RetentionReleaseController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SalesReturnController;
@@ -271,4 +273,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/production-orders/{productionOrder}', [ProductionOrderController::class, 'show']);
     Route::post('/production-orders/{productionOrder}/complete', [ProductionOrderController::class, 'complete'])->middleware('mfa');
     Route::post('/production-orders/{productionOrder}/quality-checks', [ProductionOrderController::class, 'recordQualityCheck'])->middleware('mfa');
+
+    // labour-resourcing (§3.6): Resource, ResourceAssignment with
+    // date-driven scheduled->active->completed transitions (the
+    // automatic half runs via resource-assignments:advance-status,
+    // routes/console.php) plus a manual override for either transition.
+    Route::get('/resources', [ResourceController::class, 'index']);
+    Route::post('/resources', [ResourceController::class, 'store'])->middleware('mfa');
+    Route::get('/resources/{resource}', [ResourceController::class, 'show']);
+
+    Route::get('/resource-assignments', [ResourceAssignmentController::class, 'index']);
+    Route::post('/resources/{resource}/resource-assignments', [ResourceAssignmentController::class, 'store'])->middleware('mfa');
+    Route::post('/resource-assignments/{resourceAssignment}/end-early', [ResourceAssignmentController::class, 'endEarly'])->middleware('mfa');
+    Route::post('/resource-assignments/{resourceAssignment}/extend', [ResourceAssignmentController::class, 'extend'])->middleware('mfa');
+    Route::post('/resource-assignments/{resourceAssignment}/cancel', [ResourceAssignmentController::class, 'cancel'])->middleware('mfa');
 });

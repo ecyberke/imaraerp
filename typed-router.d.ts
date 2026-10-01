@@ -99,6 +99,8 @@ declare module 'vue-router/auto-routes' {
     'front-pages-landing-page': RouteRecordInfo<'front-pages-landing-page', '/front-pages/landing-page', Record<never, never>, Record<never, never>>,
     'front-pages-payment': RouteRecordInfo<'front-pages-payment', '/front-pages/payment', Record<never, never>, Record<never, never>>,
     'front-pages-pricing': RouteRecordInfo<'front-pages-pricing', '/front-pages/pricing', Record<never, never>, Record<never, never>>,
+    'labour-resourcing-resources': RouteRecordInfo<'labour-resourcing-resources', '/labour-resourcing/resources', Record<never, never>, Record<never, never>>,
+    'labour-resourcing-resources-id': RouteRecordInfo<'labour-resourcing-resources-id', '/labour-resourcing/resources/:id', { id: ParamValue<true> }, { id: ParamValue<false> }>,
     'login': RouteRecordInfo<'login', '/login', Record<never, never>, Record<never, never>>,
     'manufacturing-production-orders': RouteRecordInfo<'manufacturing-production-orders', '/manufacturing/production-orders', Record<never, never>, Record<never, never>>,
     'manufacturing-production-orders-id': RouteRecordInfo<'manufacturing-production-orders-id', '/manufacturing/production-orders/:id', { id: ParamValue<true> }, { id: ParamValue<false> }>,
