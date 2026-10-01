@@ -21,6 +21,11 @@ class User extends Authenticatable
         'password',
         'role_id',
         'mfa_enabled',
+        // §3.1: "User ↔ Employee is optional 1:1 in both directions."
+        // No employee() relation method yet - Employee doesn't exist
+        // until hr-payroll (Phase 2), which adds both the relation and
+        // the FK constraint this column is still missing.
+        'employee_id',
     ];
 
     protected $hidden = [
