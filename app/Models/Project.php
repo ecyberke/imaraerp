@@ -12,6 +12,7 @@ class Project extends Model
     protected $fillable = [
         'tenant_id',
         'party_id',
+        'analytic_account_id',
         'name',
         'specification_file_path',
         'status',
@@ -36,6 +37,11 @@ class Project extends Model
     public function party()
     {
         return $this->belongsTo(Party::class);
+    }
+
+    public function analyticAccount()
+    {
+        return $this->belongsTo(AnalyticAccount::class);
     }
 
     /** §3.1: Boq is polymorphic (boqable Subcontract|Project) - a Project's own client-facing BOQ. */
@@ -67,6 +73,16 @@ class Project extends Model
     public function salesOrders()
     {
         return $this->hasMany(SalesOrder::class);
+    }
+
+    public function assetAssignments()
+    {
+        return $this->hasMany(AssetAssignment::class);
+    }
+
+    public function equipmentHireContracts()
+    {
+        return $this->hasMany(EquipmentHireContract::class);
     }
 
     public function tenant()

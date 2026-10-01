@@ -18,8 +18,10 @@
 // Assignment"), 'Projects' (Project/Milestone/VariationOrder/Defect -
 // projects-milestones-ui branch, same §11 line plus "Site Supervisor -
 // Project Utilization, Quality Sign Off" for the narrower utilize/sign-
-// off/defect actions), 'Dashboard' (every role can at least see their own
-// dashboard).
+// off/defect actions), 'Assets' (Asset/AssetComponent/AssetRevaluation/
+// AssetDisposal/AssetAssignment/EquipmentHireContract - fixed-assets-plant
+// branch, mirrors §11's "Asset Manager" line), 'Dashboard' (every role can
+// at least see their own dashboard).
 export function buildAbilityRulesForRole(roleName) {
   if (roleName === 'admin')
     return [{ action: 'manage', subject: 'all' }]
@@ -39,6 +41,9 @@ export function buildAbilityRulesForRole(roleName) {
 
   if (['project_manager', 'site_supervisor'].includes(roleName))
     rules.push({ action: 'manage', subject: 'Projects' })
+
+  if (roleName === 'asset_manager')
+    rules.push({ action: 'manage', subject: 'Assets' })
 
   return rules
 }

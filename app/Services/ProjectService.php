@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AnalyticAccount;
 use App\Models\BoqLine;
 use App\Models\ContractRetentionTerms;
 use App\Models\Defect;
@@ -39,9 +40,27 @@ class ProjectService
 {
     public function __construct(private WriteOffService $writeOffs) {}
 
+    /**
+     * §3.7: "AnalyticAccount handles per-project financial rollups" -
+     * every Project gets its own AnalyticAccount provisioned here, closing
+     * the gap flagged in the projects.analytic_account_id migration
+     * (fixed-assets-plant) rather than leaving each project untagged
+     * until something downstream happens to create one by convention.
+     */
     public function create(Tenant $tenant, array $data): Project
     {
-        return Project::create([...$data, 'tenant_id' => $tenant->id, 'status' => 'initiated']);
+        return DB::transaction(function () use ($tenant, $data) {
+            $project = Project::create([...$data, 'tenant_id' => $tenant->id, 'status' => 'initiated']);
+
+            $analyticAccount = AnalyticAccount::create([
+                'tenant_id' => $tenant->id,
+                'cost_code' => "PROJ-{$project->id}",
+                'name' => $project->name,
+            ]);
+            $project->update(['analytic_account_id' => $analyticAccount->id]);
+
+            return $project->fresh();
+        });
     }
 
     public function start(Project $project): Project
@@ -92,7 +111,17 @@ class ProjectService
 
                 $terms = $this->retentionTermsFor($project);
                 $dlpMonths = $terms?->dlp_duration_months ?? 12;
-                $dlpElapsed = BusinessTime::today()->gte($project->completed_at->copy()->addMonths($dlpMonths));
+                // Compared as calendar-date strings, not Carbon instant
+                // comparison - completed_at is cast in the app's storage
+                // timezone (UTC) while BusinessTime::today() is
+                // Africa/Nairobi; comparing instants directly makes DLP
+                // appear not-yet-elapsed on the very day it actually
+                // elapses, since Nairobi midnight is 3 hours before UTC
+                // midnight of the same calendar date (fixed-assets-plant
+                // caught the same bug class in its own depreciation-date
+                // comparisons, flagged and fixed here too).
+                $dlpEndDateString = $project->completed_at->copy()->addMonths($dlpMonths)->toDateString();
+                $dlpElapsed = BusinessTime::today()->toDateString() >= $dlpEndDateString;
 
                 $hasBlockingDefect = Defect::withoutGlobalScopes()
                     ->where('tenant_id', $project->tenant_id)

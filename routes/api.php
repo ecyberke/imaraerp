@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\AssetAssignmentController;
+use App\Http\Controllers\AssetCategoryController;
+use App\Http\Controllers\AssetController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\BillOfMaterialController;
@@ -19,6 +22,7 @@ use App\Http\Controllers\DefectController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DemandTriggerController;
 use App\Http\Controllers\DummyRecordController;
+use App\Http\Controllers\EquipmentHireContractController;
 use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\InvoiceController;
@@ -260,6 +264,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/general-ledger-detail', [ReportController::class, 'generalLedgerDetail']);
     Route::get('/reports/general-ledger-summary', [ReportController::class, 'generalLedgerSummary']);
     Route::get('/reports/cash-flow-statement', [ReportController::class, 'cashFlowStatement']);
+    Route::get('/reports/fixed-asset-register', [ReportController::class, 'fixedAssetRegister']);
+    Route::get('/reports/depreciation-schedule', [ReportController::class, 'depreciationSchedule']);
 
     Route::get('/dashboards/master', [DashboardController::class, 'master']);
     Route::get('/dashboards/crm-sales', [DashboardController::class, 'crmSales']);
@@ -333,4 +339,32 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/defects/{defect}', [DefectController::class, 'show']);
     Route::post('/defects/{defect}/blocks-retention', [DefectController::class, 'setBlocksRetention'])->middleware('mfa');
     Route::post('/defects/{defect}/advance', [DefectController::class, 'advance'])->middleware('mfa');
+
+    // fixed-assets-plant (§3.12): Asset/AssetComponent depreciate via
+    // DepreciationRunService's scheduled monthly job
+    // (assets:run-monthly-depreciation, routes/console.php);
+    // AssetRevaluation/AssetDisposal post through the already-ported
+    // ledger methods; AssetAssignment's internal_daily_rate is the
+    // analytic-tagged project-cost mechanism, deliberately separate from
+    // depreciation itself (never analytic-tagged); EquipmentHireContract
+    // covers hired-in (non-owned) plant.
+    Route::get('/asset-categories', [AssetCategoryController::class, 'index']);
+    Route::post('/asset-categories', [AssetCategoryController::class, 'store'])->middleware('mfa');
+
+    Route::get('/assets', [AssetController::class, 'index']);
+    Route::post('/assets', [AssetController::class, 'store'])->middleware('mfa');
+    Route::get('/assets/{asset}', [AssetController::class, 'show']);
+    Route::post('/assets/{asset}/lifespan', [AssetController::class, 'updateLifespan'])->middleware('mfa');
+    Route::post('/assets/{asset}/status', [AssetController::class, 'updateStatus'])->middleware('mfa');
+    Route::post('/assets/{asset}/revalue', [AssetController::class, 'revalue'])->middleware('mfa');
+    Route::post('/assets/{asset}/dispose', [AssetController::class, 'dispose'])->middleware('mfa');
+
+    Route::get('/assets/{asset}/assignments', [AssetAssignmentController::class, 'indexForAsset']);
+    Route::post('/assets/{asset}/assignments', [AssetAssignmentController::class, 'store'])->middleware('mfa');
+    Route::post('/asset-assignments/{assetAssignment}/release', [AssetAssignmentController::class, 'release'])->middleware('mfa');
+    Route::post('/asset-assignments/{assetAssignment}/post-charge', [AssetAssignmentController::class, 'postCharge'])->middleware('mfa');
+
+    Route::get('/equipment-hire-contracts', [EquipmentHireContractController::class, 'index']);
+    Route::post('/equipment-hire-contracts', [EquipmentHireContractController::class, 'store'])->middleware('mfa');
+    Route::post('/equipment-hire-contracts/{equipmentHireContract}/invoiced-days', [EquipmentHireContractController::class, 'recordInvoicedDays'])->middleware('mfa');
 });
