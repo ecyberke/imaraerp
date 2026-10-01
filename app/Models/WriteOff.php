@@ -13,6 +13,7 @@ class WriteOff extends Model
         'tenant_id',
         'invoice_id',
         'progress_claim_id',
+        'milestone_id',
         'amount_cents',
         'reason',
         'approved_by',
@@ -46,6 +47,11 @@ class WriteOff extends Model
     public function progressClaim()
     {
         return $this->belongsTo(ProgressClaim::class);
+    }
+
+    public function milestone()
+    {
+        return $this->belongsTo(Milestone::class);
     }
 
     public function approvedBy()

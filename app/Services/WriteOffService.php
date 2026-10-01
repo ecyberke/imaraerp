@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Invoice;
+use App\Models\Milestone;
 use App\Models\User;
 use App\Models\WriteOff;
 use App\Support\BusinessTime;
@@ -41,6 +42,29 @@ class WriteOffService
 
             $writeOff->update(['journal_entry_id' => $entry->id]);
             $invoice->update(['status' => 'written_off']);
+
+            return $writeOff->fresh();
+        });
+    }
+
+    /**
+     * §5.4 (Project.cancel()): an unbilled Milestone was never invoiced,
+     * so unlike writeOffInvoice() there is no AR balance and no journal
+     * entry to post - this only records the audit trail and closes the
+     * Milestone out. See the write_offs.milestone_id migration docblock.
+     */
+    public function writeOffMilestone(Milestone $milestone, string $reason, User $approvedBy): WriteOff
+    {
+        return DB::transaction(function () use ($milestone, $reason, $approvedBy) {
+            $writeOff = WriteOff::create([
+                'tenant_id' => $milestone->tenant_id,
+                'milestone_id' => $milestone->id,
+                'amount_cents' => $milestone->billing_amount,
+                'reason' => $reason,
+                'approved_by' => $approvedBy->id,
+            ]);
+
+            $milestone->update(['status' => 'closed']);
 
             return $writeOff->fresh();
         });

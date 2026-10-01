@@ -37,6 +37,11 @@ class ResourceAssignment extends Model
         return $this->belongsTo(Resource::class);
     }
 
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+
     public function salesOrder()
     {
         return $this->belongsTo(SalesOrder::class);

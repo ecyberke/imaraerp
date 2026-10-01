@@ -18,3 +18,8 @@ Schedule::command('invitations:prune-expired')->daily()->withoutOverlapping();
 // forget." Daily is sufficient granularity - block_start_date/
 // block_end_date are dates, not datetimes.
 Schedule::command('resource-assignments:advance-status')->daily()->withoutOverlapping();
+
+// §5.4: re-evaluates every defects_liability Project's dlp_ready_to_close
+// flag daily - see EvaluateDlpEligibility's own docblock for why the
+// actual defects_liability -> closed transition stays manual.
+Schedule::command('projects:evaluate-dlp-eligibility')->daily()->withoutOverlapping();

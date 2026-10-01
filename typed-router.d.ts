@@ -133,6 +133,8 @@ declare module 'vue-router/auto-routes' {
     'pages-pricing': RouteRecordInfo<'pages-pricing', '/pages/pricing', Record<never, never>, Record<never, never>>,
     'pages-typography': RouteRecordInfo<'pages-typography', '/pages/typography', Record<never, never>, Record<never, never>>,
     'pages-user-profile-tab': RouteRecordInfo<'pages-user-profile-tab', '/pages/user-profile/:tab', { tab: ParamValue<true> }, { tab: ParamValue<false> }>,
+    'projects': RouteRecordInfo<'projects', '/projects', Record<never, never>, Record<never, never>>,
+    'projects-id': RouteRecordInfo<'projects-id', '/projects/:id', { id: ParamValue<true> }, { id: ParamValue<false> }>,
     'register': RouteRecordInfo<'register', '/register', Record<never, never>, Record<never, never>>,
     'sales-billing-bank-accounts': RouteRecordInfo<'sales-billing-bank-accounts', '/sales-billing/bank-accounts', Record<never, never>, Record<never, never>>,
     'sales-billing-boq': RouteRecordInfo<'sales-billing-boq', '/sales-billing/boq', Record<never, never>, Record<never, never>>,

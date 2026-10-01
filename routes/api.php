@@ -15,6 +15,7 @@ use App\Http\Controllers\CreditNoteController;
 use App\Http\Controllers\CurrencyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DebitNoteController;
+use App\Http\Controllers\DefectController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DemandTriggerController;
 use App\Http\Controllers\DummyRecordController;
@@ -26,11 +27,13 @@ use App\Http\Controllers\LandedCostController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MeasurementSheetController;
 use App\Http\Controllers\MfaController;
+use App\Http\Controllers\MilestoneController;
 use App\Http\Controllers\OpeningBalanceBatchController;
 use App\Http\Controllers\PartyController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\ProgressClaimController;
+use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseRequisitionController;
 use App\Http\Controllers\ReportController;
@@ -46,6 +49,7 @@ use App\Http\Controllers\SubcontractController;
 use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\UnitOfMeasureController;
+use App\Http\Controllers\VariationOrderController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\WriteOffController;
 use Illuminate\Http\Request;
@@ -287,4 +291,46 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/resource-assignments/{resourceAssignment}/end-early', [ResourceAssignmentController::class, 'endEarly'])->middleware('mfa');
     Route::post('/resource-assignments/{resourceAssignment}/extend', [ResourceAssignmentController::class, 'extend'])->middleware('mfa');
     Route::post('/resource-assignments/{resourceAssignment}/cancel', [ResourceAssignmentController::class, 'cancel'])->middleware('mfa');
+
+    // projects-milestones-ui (§3.7/§5.4): Project's state machine
+    // (initiated -> in_progress -> complete -> defects_liability ->
+    // closed, plus cancelled), Milestone billing derived from BOQ-line
+    // allocations, VariationOrder mutating the BOQ on approval (row-locked
+    // per its own concurrency requirement), and Defect feeding finance-
+    // billing's retention-release gate (RetentionReleaseService).
+    Route::get('/projects', [ProjectController::class, 'index']);
+    Route::post('/projects', [ProjectController::class, 'store'])->middleware('mfa');
+    Route::get('/projects/{project}', [ProjectController::class, 'show']);
+    Route::get('/projects/{project}/completion-percentage', [ProjectController::class, 'completionPercentage']);
+    Route::post('/projects/{project}/start', [ProjectController::class, 'start'])->middleware('mfa');
+    Route::post('/projects/{project}/mark-complete', [ProjectController::class, 'markComplete'])->middleware('mfa');
+    Route::post('/projects/{project}/close', [ProjectController::class, 'close'])->middleware('mfa');
+    Route::post('/projects/{project}/cancel', [ProjectController::class, 'cancel'])->middleware('mfa');
+
+    Route::get('/projects/{project}/milestones', [MilestoneController::class, 'indexForProject']);
+    Route::post('/projects/{project}/milestones', [MilestoneController::class, 'store'])->middleware('mfa');
+    Route::get('/milestones/{milestone}', [MilestoneController::class, 'show']);
+    Route::post('/milestones/{milestone}/allocate-line', [MilestoneController::class, 'allocateLine'])->middleware('mfa');
+    Route::post('/milestones/{milestone}/allocate-section', [MilestoneController::class, 'allocateSection'])->middleware('mfa');
+    Route::post('/milestones/{milestone}/mark-utilized', [MilestoneController::class, 'markUtilized'])->middleware('mfa');
+    Route::post('/milestones/{milestone}/sign-off', [MilestoneController::class, 'signOff'])->middleware('mfa');
+    Route::post('/milestones/{milestone}/require-rework', [MilestoneController::class, 'requireRework'])->middleware('mfa');
+    Route::post('/milestones/{milestone}/mark-invoiced', [MilestoneController::class, 'markInvoiced'])->middleware('mfa');
+    Route::post('/milestones/{milestone}/close', [MilestoneController::class, 'close'])->middleware('mfa');
+
+    Route::get('/projects/{project}/variation-orders', [VariationOrderController::class, 'indexForProject']);
+    Route::post('/projects/{project}/variation-orders', [VariationOrderController::class, 'store'])->middleware('mfa');
+    Route::get('/variation-orders/{variationOrder}', [VariationOrderController::class, 'show']);
+    Route::post('/variation-orders/{variationOrder}/lines', [VariationOrderController::class, 'addLine'])->middleware('mfa');
+    Route::post('/variation-orders/{variationOrder}/submit', [VariationOrderController::class, 'submit'])->middleware('mfa');
+    Route::post('/variation-orders/{variationOrder}/reject', [VariationOrderController::class, 'reject'])->middleware('mfa');
+    Route::post('/variation-orders/{variationOrder}/approve', [VariationOrderController::class, 'approve'])->middleware('mfa');
+    Route::post('/variation-orders/{variationOrder}/execute', [VariationOrderController::class, 'execute'])->middleware('mfa');
+    Route::post('/variation-orders/{variationOrder}/reverse', [VariationOrderController::class, 'reverse'])->middleware('mfa');
+
+    Route::get('/projects/{project}/defects', [DefectController::class, 'indexForProject']);
+    Route::post('/projects/{project}/defects', [DefectController::class, 'store'])->middleware('mfa');
+    Route::get('/defects/{defect}', [DefectController::class, 'show']);
+    Route::post('/defects/{defect}/blocks-retention', [DefectController::class, 'setBlocksRetention'])->middleware('mfa');
+    Route::post('/defects/{defect}/advance', [DefectController::class, 'advance'])->middleware('mfa');
 });

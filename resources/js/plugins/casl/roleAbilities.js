@@ -15,7 +15,10 @@
 // ProductionOrderPolicy's own Admin/Warehouse/Procurement default),
 // 'Resourcing' (Resource/ResourceAssignment - labour-resourcing branch,
 // mirrors §11's "Project Manager - Project, Milestone, Resource
-// Assignment"), 'Dashboard' (every role can at least see their own
+// Assignment"), 'Projects' (Project/Milestone/VariationOrder/Defect -
+// projects-milestones-ui branch, same §11 line plus "Site Supervisor -
+// Project Utilization, Quality Sign Off" for the narrower utilize/sign-
+// off/defect actions), 'Dashboard' (every role can at least see their own
 // dashboard).
 export function buildAbilityRulesForRole(roleName) {
   if (roleName === 'admin')
@@ -33,6 +36,9 @@ export function buildAbilityRulesForRole(roleName) {
 
   if (roleName === 'project_manager')
     rules.push({ action: 'manage', subject: 'Resourcing' })
+
+  if (['project_manager', 'site_supervisor'].includes(roleName))
+    rules.push({ action: 'manage', subject: 'Projects' })
 
   return rules
 }
