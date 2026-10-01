@@ -9,6 +9,7 @@ const PROVIDER_LABELS = { mpesa: 'M-Pesa (Daraja)', etims: 'KRA eTIMS' }
 const providers = ref([])
 const loading = ref(true)
 const saving = ref({})
+const actionLoading = ref({})
 const notice = ref('')
 const noticeType = ref('success')
 
@@ -43,6 +44,36 @@ async function save(provider) {
     flash(extractApiErrorMessage(err), 'error')
   } finally {
     saving.value[provider.provider] = false
+  }
+}
+
+async function initializeEtimsDevice() {
+  actionLoading.value.initialize = true
+  try {
+    const submission = await $api('/etims/initialize-device', { method: 'POST' })
+
+    if (submission.status === 'success')
+      flash('Device initialized - Communication Key stored.')
+    else
+      flash(submission.result_desc || 'Initialization did not return a usable Communication Key - check the submission record.', 'error')
+    await load()
+  } catch (err) {
+    flash(extractApiErrorMessage(err), 'error')
+  } finally {
+    actionLoading.value.initialize = false
+  }
+}
+
+async function syncEtimsItemClassifications() {
+  actionLoading.value.sync = true
+  try {
+    const submission = await $api('/etims/sync-item-classifications', { method: 'POST' })
+
+    flash(submission.result_desc || 'Sync complete.', submission.status === 'success' ? 'success' : 'error')
+  } catch (err) {
+    flash(extractApiErrorMessage(err), 'error')
+  } finally {
+    actionLoading.value.sync = false
   }
 }
 
@@ -112,6 +143,22 @@ onMounted(load)
         </VRow>
       </VCardText>
       <VCardActions v-if="Object.keys(provider.fields).length">
+        <template v-if="provider.provider === 'etims'">
+          <VBtn
+            variant="text"
+            :loading="actionLoading.initialize"
+            @click="initializeEtimsDevice"
+          >
+            Initialize Device
+          </VBtn>
+          <VBtn
+            variant="text"
+            :loading="actionLoading.sync"
+            @click="syncEtimsItemClassifications"
+          >
+            Sync Item Classification Codes
+          </VBtn>
+        </template>
         <VSpacer />
         <VBtn
           :loading="saving[provider.provider]"
