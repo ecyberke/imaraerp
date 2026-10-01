@@ -31,6 +31,11 @@ class Subcontract extends Model
         return $this->belongsTo(Party::class);
     }
 
+    public function boq()
+    {
+        return $this->belongsTo(Boq::class, 'boq_id');
+    }
+
     public function progressClaims()
     {
         return $this->hasMany(ProgressClaim::class);

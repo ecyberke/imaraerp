@@ -2,19 +2,41 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\BillOfMaterialController;
+use App\Http\Controllers\BoqController;
+use App\Http\Controllers\BoqImportStagingController;
+use App\Http\Controllers\CapitalMovementController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ChartOfAccountController;
+use App\Http\Controllers\ContractRetentionTermsController;
+use App\Http\Controllers\CreditApprovalController;
+use App\Http\Controllers\CreditNoteController;
+use App\Http\Controllers\CurrencyController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DebitNoteController;
+use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DemandTriggerController;
 use App\Http\Controllers\DummyRecordController;
 use App\Http\Controllers\GoodsReceiptNoteController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LandedCostController;
+use App\Http\Controllers\LeadController;
+use App\Http\Controllers\MeasurementSheetController;
 use App\Http\Controllers\MfaController;
+use App\Http\Controllers\OpeningBalanceBatchController;
 use App\Http\Controllers\PartyController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\ProgressClaimController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\PurchaseRequisitionController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RetentionReleaseController;
+use App\Http\Controllers\SalesOrderController;
+use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\StockAvailabilityController;
 use App\Http\Controllers\StockReceivingController;
 use App\Http\Controllers\StockReservationController;
@@ -23,6 +45,7 @@ use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\UnitOfMeasureController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\WriteOffController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -127,6 +150,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/goods-receipt-notes/{goodsReceiptNote}/landed-costs', [LandedCostController::class, 'store'])->middleware('mfa');
     Route::post('/grn-lines/{grnLine}/quality-checks', [GoodsReceiptNoteController::class, 'recordQualityCheck'])->middleware('mfa');
 
+    Route::get('/subcontracts', [SubcontractController::class, 'index']);
     Route::post('/subcontracts', [SubcontractController::class, 'store'])->middleware('mfa');
     Route::get('/subcontracts/{subcontract}', [SubcontractController::class, 'show']);
     Route::post('/subcontracts/{subcontract}/progress-claims', [ProgressClaimController::class, 'store'])->middleware('mfa');
@@ -137,4 +161,114 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/supplier-payments', [SupplierPaymentController::class, 'store'])->middleware('mfa');
     Route::post('/supplier-payments/fx-settlement', [SupplierPaymentController::class, 'storeFxSettlement'])->middleware('mfa');
     Route::post('/supplier-returns', [SupplierReturnController::class, 'store'])->middleware('mfa');
+
+    // crm-sales-boq (§3.2/§5.1): Lead -> Quotation/SalesOrder ->
+    // Feasibility -> (Direct Sale) stock reservation against
+    // inventory-core; Delivery/SalesReturn; the BOQ family and its
+    // upload-to-staging-to-confirm pipeline.
+    Route::get('/leads', [LeadController::class, 'index']);
+    Route::post('/leads', [LeadController::class, 'store'])->middleware('mfa');
+    Route::get('/leads/{lead}', [LeadController::class, 'show']);
+
+    Route::get('/sales-orders', [SalesOrderController::class, 'index']);
+    Route::post('/sales-orders', [SalesOrderController::class, 'store'])->middleware('mfa');
+    Route::get('/sales-orders/{salesOrder}', [SalesOrderController::class, 'show']);
+    Route::post('/sales-orders/{salesOrder}/submit-for-feasibility', [SalesOrderController::class, 'submitForFeasibility'])->middleware('mfa');
+    Route::post('/sales-orders/{salesOrder}/feasibility-assessments', [SalesOrderController::class, 'assessFeasibility'])->middleware('mfa');
+    Route::post('/sales-orders/{salesOrder}/resubmit', [SalesOrderController::class, 'resubmit'])->middleware('mfa');
+    Route::post('/sales-orders/{salesOrder}/reserve-stock', [SalesOrderController::class, 'reserveStock'])->middleware('mfa');
+
+    Route::get('/sales-orders/{salesOrder}/deliveries', [DeliveryController::class, 'indexForSalesOrder']);
+    Route::post('/sales-orders/{salesOrder}/deliveries', [DeliveryController::class, 'store'])->middleware('mfa');
+    Route::get('/deliveries/{delivery}', [DeliveryController::class, 'show']);
+    Route::post('/deliveries/{delivery}/lines', [DeliveryController::class, 'addLine'])->middleware('mfa');
+    Route::post('/deliveries/{delivery}/mark-delivered', [DeliveryController::class, 'markDelivered'])->middleware('mfa');
+    Route::post('/deliveries/{delivery}/sales-returns', [SalesReturnController::class, 'store'])->middleware('mfa');
+
+    Route::get('/boqs', [BoqController::class, 'index']);
+    Route::post('/boqs', [BoqController::class, 'store'])->middleware('mfa');
+    Route::get('/boqs/{boq}', [BoqController::class, 'show']);
+
+    Route::get('/boq-lines/{boqLine}/measurement-sheets', [MeasurementSheetController::class, 'indexForLine']);
+    Route::post('/boq-lines/{boqLine}/measurement-sheets', [MeasurementSheetController::class, 'store'])->middleware('mfa');
+    Route::post('/measurement-sheets/{measurementSheet}/certify', [MeasurementSheetController::class, 'certify'])->middleware('mfa');
+
+    Route::get('/boq-import-stagings', [BoqImportStagingController::class, 'index']);
+    Route::post('/boq-import-stagings', [BoqImportStagingController::class, 'store'])->middleware('mfa');
+    Route::patch('/boq-import-stagings/{boqImportStaging}/map', [BoqImportStagingController::class, 'map'])->middleware('mfa');
+    Route::post('/boq-import-stagings/{boqImportStaging}/confirm', [BoqImportStagingController::class, 'confirm'])->middleware('mfa');
+    Route::post('/boq-import-stagings/{boqImportStaging}/reject', [BoqImportStagingController::class, 'reject'])->middleware('mfa');
+
+    // finance-billing (§3.9): Invoice -> CreditApproval -> raise ->
+    // Payment/PaymentAllocation, CreditNote/DebitNote corrections,
+    // Write-off, RetentionAccount/ContractRetentionTerms/
+    // RetentionRelease, CapitalMovement, and the OpeningBalanceBatch
+    // migration mechanism.
+    Route::post('/contract-retention-terms', [ContractRetentionTermsController::class, 'store'])->middleware('mfa');
+
+    Route::get('/invoices', [InvoiceController::class, 'index']);
+    Route::post('/invoices', [InvoiceController::class, 'store'])->middleware('mfa');
+    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show']);
+    Route::post('/invoices/{invoice}/raise', [InvoiceController::class, 'raise'])->middleware('mfa');
+
+    Route::post('/credit-approvals', [CreditApprovalController::class, 'store'])->middleware('mfa');
+    Route::post('/credit-approvals/{creditApproval}/override', [CreditApprovalController::class, 'override'])->middleware('mfa');
+
+    Route::post('/credit-notes', [CreditNoteController::class, 'store'])->middleware('mfa');
+    Route::post('/debit-notes', [DebitNoteController::class, 'store'])->middleware('mfa');
+    Route::post('/write-offs', [WriteOffController::class, 'store'])->middleware('mfa');
+
+    Route::post('/retention-releases', [RetentionReleaseController::class, 'store'])->middleware('mfa');
+    Route::post('/retention-releases/{retentionRelease}/mark-ready', [RetentionReleaseController::class, 'markReady'])->middleware('mfa');
+    Route::post('/retention-releases/{retentionRelease}/release', [RetentionReleaseController::class, 'release'])->middleware('mfa');
+
+    Route::post('/payments', [PaymentController::class, 'store'])->middleware('mfa');
+    Route::post('/payment-allocations/{paymentAllocation}/refund', [PaymentController::class, 'refundAdvance'])->middleware('mfa');
+
+    Route::post('/capital-movements', [CapitalMovementController::class, 'store'])->middleware('mfa');
+
+    Route::post('/opening-balance-batches', [OpeningBalanceBatchController::class, 'store'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/invoices', [OpeningBalanceBatchController::class, 'addInvoice'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/payments', [OpeningBalanceBatchController::class, 'addPayment'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/payment-allocations', [OpeningBalanceBatchController::class, 'addPaymentAllocation'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/stock', [OpeningBalanceBatchController::class, 'addStock'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/document-sequence', [OpeningBalanceBatchController::class, 'initializeDocumentSequence'])->middleware('mfa');
+    Route::post('/opening-balance-batches/{openingBalanceBatch}/post', [OpeningBalanceBatchController::class, 'post'])->middleware('mfa');
+
+    Route::get('/bank-accounts', [BankAccountController::class, 'index']);
+    Route::post('/bank-accounts', [BankAccountController::class, 'store'])->middleware('mfa');
+
+    Route::get('/currencies', [CurrencyController::class, 'index']);
+    Route::get('/chart-of-accounts', [ChartOfAccountController::class, 'index']);
+
+    // phase1-reports-dashboards (§10/§10.1): every report/dashboard is a
+    // read-only query over already-posted data, so none of these routes
+    // carry 'mfa' - MFA gates *mutation*, and nothing here mutates.
+    Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance']);
+    Route::get('/reports/ar-aging', [ReportController::class, 'arAging']);
+    Route::get('/reports/ap-aging', [ReportController::class, 'apAging']);
+    Route::get('/reports/party-ledger', [ReportController::class, 'partyLedger']);
+    Route::get('/reports/balance-sheet', [ReportController::class, 'balanceSheet']);
+    Route::get('/reports/income-statement', [ReportController::class, 'incomeStatement']);
+    Route::get('/reports/project-pnl', [ReportController::class, 'projectPnl']);
+    Route::get('/reports/general-ledger-detail', [ReportController::class, 'generalLedgerDetail']);
+    Route::get('/reports/general-ledger-summary', [ReportController::class, 'generalLedgerSummary']);
+    Route::get('/reports/cash-flow-statement', [ReportController::class, 'cashFlowStatement']);
+
+    Route::get('/dashboards/master', [DashboardController::class, 'master']);
+    Route::get('/dashboards/crm-sales', [DashboardController::class, 'crmSales']);
+    Route::get('/dashboards/inventory', [DashboardController::class, 'inventory']);
+    Route::get('/dashboards/procurement', [DashboardController::class, 'procurement']);
+    Route::get('/dashboards/finance', [DashboardController::class, 'finance']);
+
+    // manufacturing (§3.5): ProductionOrder consumes RM per the BOM,
+    // produces FG at standard cost, and posts through ledger-core's
+    // already-built (but until now unexercised) postProductionConsumption;
+    // QualityCheck proves its own polymorphic shape against a second
+    // checkable_type (GRN/StockQuarantine was the first, inventory-core).
+    Route::get('/production-orders', [ProductionOrderController::class, 'index']);
+    Route::post('/production-orders', [ProductionOrderController::class, 'store'])->middleware('mfa');
+    Route::get('/production-orders/{productionOrder}', [ProductionOrderController::class, 'show']);
+    Route::post('/production-orders/{productionOrder}/complete', [ProductionOrderController::class, 'complete'])->middleware('mfa');
+    Route::post('/production-orders/{productionOrder}/quality-checks', [ProductionOrderController::class, 'recordQualityCheck'])->middleware('mfa');
 });

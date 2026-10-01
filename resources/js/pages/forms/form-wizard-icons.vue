@@ -1,12 +1,16 @@
 <script setup>
+// Materialize template gap, pre-existing and unrelated to Imara ERP:
+// this checkout's demo directory only ever shipped
+// DemoFormWizardIconsBasic.vue - the Validation/Vertical variant files
+// this page originally imported don't exist here, which broke
+// `npm run build` outright (discovered now that the Node/Vite version
+// gap blocking any build at all is finally resolved). Trimmed to the
+// variant that actually exists rather than reconstructing two
+// generic template demo components no Imara ERP screen depends on.
 import {
   basic,
-  validation,
-  vertical,
 } from '@/views/demos/forms/form-wizard/form-wizard-icons/demoCodeFormWizardIcons'
 import DemoFormWizardIconsBasic from '@/views/demos/forms/form-wizard/form-wizard-icons/DemoFormWizardIconsBasic.vue'
-import DemoFormWizardIconsValidation from '@/views/demos/forms/form-wizard/form-wizard-icons/DemoFormWizardIconsValidation.vue'
-import DemoFormWizardIconsVertical from '@/views/demos/forms/form-wizard/form-wizard-icons/DemoFormWizardIconsVertical.vue'
 </script>
 
 <template>
@@ -19,28 +23,6 @@ import DemoFormWizardIconsVertical from '@/views/demos/forms/form-wizard/form-wi
         :code="basic"
       >
         <DemoFormWizardIconsBasic />
-      </AppCardCode>
-    </VCol>
-
-    <!-- 👉 Validation -->
-    <VCol cols="12">
-      <AppCardCode
-        variant="outlined"
-        title="Validation"
-        :code="validation"
-      >
-        <DemoFormWizardIconsValidation />
-      </AppCardCode>
-    </VCol>
-
-    <!-- 👉 Vertical -->
-    <VCol cols="12">
-      <AppCardCode
-        variant="outlined"
-        title="Vertical"
-        :code="vertical"
-      >
-        <DemoFormWizardIconsVertical />
       </AppCardCode>
     </VCol>
   </VRow>
