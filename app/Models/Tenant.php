@@ -32,7 +32,22 @@ class Tenant extends Model
             ChartOfAccountsSeeder::seed($tenant);
             TaxCodeSeeder::seed($tenant);
             $tenant->seedDefaultWarehouses();
+            $tenant->seedDefaultCurrency();
         });
+    }
+
+    /**
+     * KES is always the base currency (every ledger posting and
+     * stock_ledger.unit_cost is base-currency-only, §3.4/§7) - seeded so
+     * PurchaseOrder always has a real currency_id to default to, even for
+     * a tenant that never touches foreign-currency purchasing.
+     */
+    public function seedDefaultCurrency(): void
+    {
+        DB::table('currencies')->insert([
+            'tenant_id' => $this->getKey(), 'code' => 'KES', 'name' => 'Kenyan Shilling',
+            'is_base' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
     }
 
     /**
