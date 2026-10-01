@@ -23,7 +23,12 @@
 // branch, mirrors §11's "Asset Manager" line), 'HR' (Employee/
 // EmploymentContract/Timesheet/LeaveRequest/PayrollRun/StatutoryRemittance/
 // P9A/P10 - hr-payroll branch, mirrors §11's "HR Manager" line),
-// 'Dashboard' (every role can at least see their own dashboard).
+// 'Dashboard' (every role can at least see their own dashboard - also
+// used by the full Notifications list page, since every role reads only
+// their own notifications regardless of module), 'Admin' (Approval
+// Limits - approval-notification-compliance branch; deliberately granted
+// to no role here, since ApprovalLimitPolicy is admin-only and Admin
+// already gets {action:'manage', subject:'all'} above).
 export function buildAbilityRulesForRole(roleName) {
   if (roleName === 'admin')
     return [{ action: 'manage', subject: 'all' }]

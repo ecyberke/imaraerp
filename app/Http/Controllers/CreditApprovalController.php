@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CreditApproval;
 use App\Models\Invoice;
+use App\Models\User;
 use App\Services\CreditApprovalService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -33,11 +34,17 @@ class CreditApprovalController extends Controller
     {
         $this->authorize('update', $creditApproval);
 
+        $tenantId = $request->user()->tenant_id;
         $data = $request->validate([
             'notes' => ['required', 'string'],
+            'second_approver_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('tenant_id', $tenantId)],
         ]);
 
-        $approval = $this->creditApprovals->override($creditApproval, $request->user(), $data['notes']);
+        /** @var User $approver */
+        $approver = $request->user();
+        $secondApprover = isset($data['second_approver_id']) ? User::where('tenant_id', $tenantId)->find($data['second_approver_id']) : null;
+
+        $approval = $this->creditApprovals->override($creditApproval, $approver, $data['notes'], $secondApprover);
 
         return response()->json($approval);
     }

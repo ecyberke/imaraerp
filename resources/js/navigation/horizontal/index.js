@@ -1,3 +1,4 @@
+import approvalLimits from './approval-limits'
 import apps from './apps'
 import assets from './assets'
 import charts from './charts'
@@ -13,4 +14,4 @@ import salesBilling from './sales-billing'
 import tables from './tables'
 import uiElements from './ui-elements'
 
-export default [...dashboard, ...salesBilling, ...manufacturing, ...labourResourcing, ...projects, ...assets, ...hr, ...apps, ...pages, ...uiElements, ...forms, ...tables, ...charts, ...others]
+export default [...dashboard, ...salesBilling, ...manufacturing, ...labourResourcing, ...projects, ...assets, ...hr, ...approvalLimits, ...apps, ...pages, ...uiElements, ...forms, ...tables, ...charts, ...others]

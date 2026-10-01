@@ -28,3 +28,9 @@ Schedule::command('projects:evaluate-dlp-eligibility')->daily()->withoutOverlapp
 // so running it more than once in a month (a retry after a failure, for
 // instance) never double-posts.
 Schedule::command('assets:run-monthly-depreciation')->monthly()->withoutOverlapping();
+
+// §3.10: "lower-priority notification types support a batched_daily/
+// batched_weekly delivery mode." Daily run covers both - a weekly-due
+// notification is simply skipped until its own 7-day window elapses
+// (NotificationService::dispatchDueDigests() checks this itself).
+Schedule::command('notifications:dispatch-digests')->daily()->withoutOverlapping();

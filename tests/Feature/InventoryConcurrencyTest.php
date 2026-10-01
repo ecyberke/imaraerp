@@ -60,6 +60,7 @@ class InventoryConcurrencyTest extends TestCase
             DB::table('chart_of_accounts')->where('tenant_id', $tenantId)->delete();
             DB::table('tax_codes')->where('tenant_id', $tenantId)->delete();
             DB::table('accounting_periods')->where('tenant_id', $tenantId)->delete();
+            DB::table('approval_limits')->where('tenant_id', $tenantId)->delete();
             DB::table('roles')->where('tenant_id', $tenantId)->delete();
             DB::table('tenants')->where('id', $tenantId)->delete();
         }

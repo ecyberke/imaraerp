@@ -23,10 +23,17 @@ use Illuminate\Support\Facades\DB;
  * (direction=payable) for the withheld amount, closing the gap where
  * ProgressClaim.retention_amount_cents was stored but never surfaced as
  * a trackable, releasable balance.
+ *
+ * approval-notification-compliance adds the §3.10 blocking check:
+ * certify() now refuses when ComplianceDocumentService finds a missing
+ * or expired document type the Subcontract itself requires.
  */
 class ProgressClaimService
 {
-    public function __construct(private LedgerPostingService $ledger) {}
+    public function __construct(
+        private LedgerPostingService $ledger,
+        private ComplianceDocumentService $complianceDocuments,
+    ) {}
 
     public function certify(
         ProgressClaim $claim,
@@ -38,6 +45,13 @@ class ProgressClaimService
         return DB::transaction(function () use ($claim, $amountCertified, $vatRate, $retentionPercentage, $certifier) {
             $claim->loadMissing('subcontract.party');
             $tenant = Tenant::findOrFail($claim->tenant_id);
+
+            $missing = $this->complianceDocuments->missingOrInvalidDocumentTypes($claim->subcontract);
+            if (! empty($missing)) {
+                throw new \DomainException(
+                    'Cannot certify this Progress Claim - the subcontractor is missing or has expired required compliance documents: '.implode(', ', $missing).'.'
+                );
+            }
 
             $whtTaxCode = $this->resolveWhtTaxCode($claim->subcontract->party);
             $whtRate = (string) $whtTaxCode->rate;

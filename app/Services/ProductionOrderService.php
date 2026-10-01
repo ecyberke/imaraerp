@@ -24,6 +24,7 @@ class ProductionOrderService
     public function __construct(
         private StockValuationService $valuation,
         private LedgerPostingService $ledger,
+        private NotificationService $notifications,
     ) {}
 
     /**
@@ -109,11 +110,20 @@ class ProductionOrderService
                 'completed_at' => now(),
             ]);
 
-            // bom_variance_exceeded would raise a real Notification
-            // (type=bom_variance_exceeded) once that entity exists
-            // (approval-notification-compliance, not yet built) - the
-            // fact is stored on the order itself so nothing is lost in
-            // the meantime, flagged rather than silently simulated.
+            // §12 open-decision #3: "record, alert, let a human decide" -
+            // bom_variance_exceeded is the record; this is the alert.
+            // Warehouse/Procurement are ProductionOrderPolicy's own
+            // default owners for this entity (no role named in §11).
+            if ($exceeded) {
+                $tenant = Tenant::findOrFail($order->tenant_id);
+                foreach (['warehouse', 'procurement'] as $role) {
+                    $this->notifications->notifyRole(
+                        $tenant, $role, 'bom_variance_exceeded',
+                        "ProductionOrder #{$order->id} exceeded its BOM wastage tolerance ({$bomVariancePct} actual vs {$bom->effectiveTolerancePct()} allowed).",
+                        ProductionOrder::class, $order->id,
+                    );
+                }
+            }
 
             return $order->fresh();
         });

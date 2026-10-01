@@ -18,6 +18,8 @@ class TimesheetService
     /** Employment Act 2007 s.37: "one month continuously, or an equivalent of three months with breaks." Only the cumulative variant is tracked here - see the employees migration's own docblock. */
     private const CASUAL_CONVERSION_THRESHOLD_DAYS = 90;
 
+    public function __construct(private NotificationService $notifications) {}
+
     public function submit(Employee $employee, array $data): Timesheet
     {
         return Timesheet::create([
@@ -58,10 +60,19 @@ class TimesheetService
     private function incrementCasualDays(Employee $employee): void
     {
         $newTotal = ($employee->cumulative_casual_days_worked ?? 0) + 1;
+        $crossedThreshold = $newTotal >= self::CASUAL_CONVERSION_THRESHOLD_DAYS && ! $employee->casual_conversion_due;
 
         $employee->update([
             'cumulative_casual_days_worked' => $newTotal,
             'casual_conversion_due' => $newTotal >= self::CASUAL_CONVERSION_THRESHOLD_DAYS,
         ]);
+
+        if ($crossedThreshold) {
+            $this->notifications->notifyRole(
+                $employee->tenant, 'hr_manager', 'casual_conversion_due',
+                "Employee #{$employee->id} ({$employee->name}) has crossed the Employment Act 2007 s.37 casual-to-permanent conversion threshold.",
+                Employee::class, $employee->id,
+            );
+        }
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\ApprovalLimitController;
 use App\Http\Controllers\AssetAssignmentController;
 use App\Http\Controllers\AssetCategoryController;
 use App\Http\Controllers\AssetController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\BoqImportStagingController;
 use App\Http\Controllers\CapitalMovementController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ChartOfAccountController;
+use App\Http\Controllers\ComplianceDocumentController;
 use App\Http\Controllers\ContractRetentionTermsController;
 use App\Http\Controllers\CreditApprovalController;
 use App\Http\Controllers\CreditNoteController;
@@ -36,6 +38,7 @@ use App\Http\Controllers\LeaveTypeController;
 use App\Http\Controllers\MeasurementSheetController;
 use App\Http\Controllers\MfaController;
 use App\Http\Controllers\MilestoneController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OpeningBalanceBatchController;
 use App\Http\Controllers\PartyController;
 use App\Http\Controllers\PaymentController;
@@ -50,6 +53,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ResourceAssignmentController;
 use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\RetentionReleaseController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\StatutoryRemittanceController;
@@ -158,10 +162,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/purchase-requisitions', [PurchaseRequisitionController::class, 'store'])->middleware('mfa');
     Route::get('/purchase-requisitions/{purchaseRequisition}', [PurchaseRequisitionController::class, 'show']);
     Route::patch('/purchase-requisitions/{purchaseRequisition}/approve', [PurchaseRequisitionController::class, 'approve'])->middleware('mfa');
+    Route::patch('/purchase-requisitions/{purchaseRequisition}/reject', [PurchaseRequisitionController::class, 'reject'])->middleware('mfa');
 
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
     Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->middleware('mfa');
     Route::get('/purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'show']);
+    Route::post('/purchase-orders/{purchaseOrder}/submit-for-approval', [PurchaseOrderController::class, 'submitForApproval'])->middleware('mfa');
+    Route::post('/purchase-orders/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve'])->middleware('mfa');
+    Route::post('/purchase-orders/{purchaseOrder}/reject', [PurchaseOrderController::class, 'reject'])->middleware('mfa');
+    Route::post('/purchase-orders/{purchaseOrder}/mark-ordered', [PurchaseOrderController::class, 'markOrdered'])->middleware('mfa');
 
     Route::post('/purchase-orders/{purchaseOrder}/goods-receipt-notes', [GoodsReceiptNoteController::class, 'store'])->middleware('mfa');
     Route::get('/goods-receipt-notes/{goodsReceiptNote}', [GoodsReceiptNoteController::class, 'show']);
@@ -256,6 +265,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/bank-accounts', [BankAccountController::class, 'index']);
     Route::post('/bank-accounts', [BankAccountController::class, 'store'])->middleware('mfa');
+    Route::get('/bank-accounts/{bankAccount}/reconciliation-summary', [BankAccountController::class, 'reconciliationSummary']);
+    Route::post('/payments/{payment}/reconcile', [BankAccountController::class, 'markPaymentReconciled'])->middleware('mfa');
+    Route::post('/payments/{payment}/unreconcile', [BankAccountController::class, 'unmarkPaymentReconciled'])->middleware('mfa');
 
     Route::get('/currencies', [CurrencyController::class, 'index']);
     Route::get('/chart-of-accounts', [ChartOfAccountController::class, 'index']);
@@ -422,4 +434,21 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/employees/{employee}/p9a', [TaxComplianceReportController::class, 'p9a']);
     Route::get('/p10', [TaxComplianceReportController::class, 'p10']);
+
+    // approval-notification-compliance (§3.10): ApprovalLimit (admin-only
+    // config, retrofitted into PR/PO/CreditApproval-override/
+    // VariationOrder approval), Notification (own-notifications-only,
+    // digest batching via notifications:dispatch-digests), ComplianceDocument
+    // (blocking check wired into ProgressClaimService::certify()).
+    Route::get('/approval-limits', [ApprovalLimitController::class, 'index']);
+    Route::post('/approval-limits', [ApprovalLimitController::class, 'store'])->middleware('mfa');
+    Route::put('/approval-limits/{approvalLimit}', [ApprovalLimitController::class, 'update'])->middleware('mfa');
+
+    Route::get('/roles', [RoleController::class, 'index']);
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{notification}/mark-read', [NotificationController::class, 'markRead']);
+
+    Route::get('/parties/{party}/compliance-documents', [ComplianceDocumentController::class, 'indexForParty']);
+    Route::post('/parties/{party}/compliance-documents', [ComplianceDocumentController::class, 'store'])->middleware('mfa');
 });

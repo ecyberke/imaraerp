@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
  */
 class RetentionReleaseService
 {
-    public function __construct(private LedgerPostingService $ledger) {}
+    public function __construct(private LedgerPostingService $ledger, private NotificationService $notifications) {}
 
     public function request(RetentionAccount $account, string $stage, string $amountMajor): RetentionRelease
     {
@@ -47,12 +47,23 @@ class RetentionReleaseService
      */
     public function markReady(RetentionRelease $release): RetentionRelease
     {
+        $wasReady = $release->status === 'ready';
         $blocked = $this->hasBlockingDefect($release->retentionAccount);
 
         $release->update([
             'status' => $blocked ? 'blocked_defects' : 'ready',
             'block_reason' => $blocked ? 'One or more open/in-progress Defects on this project or subcontract block retention release.' : null,
         ]);
+
+        // §3.10: "genuinely urgent types ... retention release ready -
+        // always stay immediate." Finance owns RetentionRelease (§11).
+        if (! $blocked && ! $wasReady) {
+            $this->notifications->notifyRole(
+                $release->tenant, 'finance', 'retention_release_due',
+                "RetentionRelease #{$release->id} ({$release->stage}) is ready to release.",
+                RetentionRelease::class, $release->id,
+            );
+        }
 
         return $release->fresh();
     }

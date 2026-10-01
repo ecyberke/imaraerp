@@ -70,6 +70,11 @@ onMounted(loadParties)
       :loading="loading"
       item-value="id"
     >
+      <template #item.name="{ item }">
+        <RouterLink :to="{ name: 'sales-billing-parties-id', params: { id: item.id } }">
+          {{ item.name }}
+        </RouterLink>
+      </template>
       <template #item.is_active="{ item }">
         <VChip :color="item.is_active ? 'success' : 'secondary'">
           {{ item.is_active ? 'Active' : 'Inactive' }}

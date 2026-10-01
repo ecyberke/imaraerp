@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\BankAccount;
+use App\Models\Payment;
+use App\Services\BankReconciliationService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class BankAccountController extends Controller
 {
+    public function __construct(private BankReconciliationService $reconciliation) {}
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', BankAccount::class);
@@ -38,5 +42,29 @@ class BankAccountController extends Controller
         ]);
 
         return response()->json($bankAccount, 201);
+    }
+
+    /** Lightweight manual reconciliation - see BankReconciliationService's own docblock for scope. */
+    public function reconciliationSummary(BankAccount $bankAccount)
+    {
+        $this->authorize('view', $bankAccount);
+
+        return response()->json($this->reconciliation->summary($bankAccount));
+    }
+
+    public function markPaymentReconciled(Payment $payment)
+    {
+        abort_if(! $payment->bank_account_id, 422, 'This Payment has no BankAccount to reconcile against.');
+        $this->authorize('view', $payment->bankAccount);
+
+        return response()->json($this->reconciliation->markReconciled($payment));
+    }
+
+    public function unmarkPaymentReconciled(Payment $payment)
+    {
+        abort_if(! $payment->bank_account_id, 422, 'This Payment has no BankAccount to reconcile against.');
+        $this->authorize('view', $payment->bankAccount);
+
+        return response()->json($this->reconciliation->unmarkReconciled($payment));
     }
 }

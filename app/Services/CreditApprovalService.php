@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\DB;
  */
 class CreditApprovalService
 {
+    public function __construct(private ApprovalLimitService $approvalLimits, private NotificationService $notifications) {}
+
     public function request(Invoice $invoice, ?User $requestedBy = null): CreditApproval
     {
         return DB::transaction(function () use ($invoice, $requestedBy) {
@@ -65,18 +67,36 @@ class CreditApprovalService
     /**
      * §3.9: "a Finance user can override via an explicit action, which
      * CreditApproval.status = overridden records with the same audit
-     * weight as any other approval decision."
+     * weight as any other approval decision." approval-notification-
+     * compliance adds the ApprovalLimit gate (entity_type=credit_approval)
+     * - a large-enough override needs a genuinely different second
+     * approver, same maker-checker rule as every other ApprovalLimit
+     * -gated action.
      */
-    public function override(CreditApproval $approval, User $approver, string $notes): CreditApproval
+    public function override(CreditApproval $approval, User $approver, string $notes, ?User $secondApprover = null): CreditApproval
     {
         if ($approval->status !== 'rejected') {
             throw new \DomainException("Cannot override a credit approval with status '{$approval->status}'.");
         }
 
-        return DB::transaction(function () use ($approval, $approver, $notes) {
+        $decision = $this->approvalLimits->evaluate($approver->tenant, 'credit_approval', $approver, $approval->requested_amount);
+        if (! $decision['approved']) {
+            throw new \DomainException($decision['reason']);
+        }
+        if ($decision['requires_second_approval']) {
+            if (! $secondApprover) {
+                $this->notifications->notifyApprovalPendingForRole($approver->tenant, $decision['second_approver_role_id'], CreditApproval::class, $approval->id, "CreditApproval #{$approval->id} override needs a second approval.");
+
+                throw new \DomainException('This override requires a second approval above the configured threshold.');
+            }
+            $this->approvalLimits->assertSecondApprover($approver, $secondApprover, $decision['second_approver_role_id']);
+        }
+
+        return DB::transaction(function () use ($approval, $approver, $notes, $secondApprover) {
             $approval->update([
                 'status' => 'overridden',
                 'approved_by' => $approver->id,
+                'second_approved_by' => $secondApprover?->id,
                 'approved_at' => now(),
                 'notes' => $notes,
             ]);

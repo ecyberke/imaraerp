@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\ApprovalLimitSeeder;
 use App\Services\ChartOfAccountsSeeder;
 use App\Services\PublicHolidaySeeder;
 use App\Services\StatutoryDeductionRateSeeder;
@@ -37,6 +38,7 @@ class Tenant extends Model
             $tenant->seedDefaultCurrency();
             StatutoryDeductionRateSeeder::seed($tenant);
             PublicHolidaySeeder::seed($tenant);
+            ApprovalLimitSeeder::seed($tenant);
         });
     }
 

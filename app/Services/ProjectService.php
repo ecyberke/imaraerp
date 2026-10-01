@@ -38,7 +38,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ProjectService
 {
-    public function __construct(private WriteOffService $writeOffs) {}
+    public function __construct(private WriteOffService $writeOffs, private NotificationService $notifications) {}
 
     /**
      * §3.7: "AnalyticAccount handles per-project financial rollups" -
@@ -135,6 +135,18 @@ class ProjectService
                 if ($readyToClose !== (bool) $project->dlp_ready_to_close) {
                     $project->update(['dlp_ready_to_close' => $readyToClose, 'version' => $project->version + 1]);
                     $evaluated++;
+
+                    // §3.10: "dlp_ready_to_close routes to the Project
+                    // Manager role by default - someone signs off needs
+                    // an actual someone." Only on the transition into
+                    // ready, not every re-evaluation.
+                    if ($readyToClose) {
+                        $this->notifications->notifyRole(
+                            $project->tenant, 'project_manager', 'dlp_ready_to_close',
+                            "Project #{$project->id} ({$project->name}) is ready to close - the Defects Liability Period has elapsed with no blocking Defects.",
+                            Project::class, $project->id,
+                        );
+                    }
                 }
             });
         }
