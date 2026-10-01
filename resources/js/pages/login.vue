@@ -1,6 +1,7 @@
 <script setup>
 import { VForm } from 'vuetify/components/VForm'
 import AuthProvider from '@/views/pages/authentication/AuthProvider.vue'
+import { buildAbilityRulesForRole } from '@/plugins/casl/roleAbilities'
 import { themeConfig } from '@themeConfig'
 import authV2LoginIllustrationBorderedDark from '@images/pages/auth-v2-login-illustration-bordered-dark.png'
 import authV2LoginIllustrationBorderedLight from '@images/pages/auth-v2-login-illustration-bordered-light.png'
@@ -33,14 +34,19 @@ const errors = ref({
 const refVForm = ref()
 
 const credentials = ref({
-  email: 'admin@demo.com',
-  password: 'admin',
+  email: '',
+  password: '',
 })
 
 const rememberMe = ref(false)
 
 const login = async () => {
   try {
+    // Real backend shape (App\Http\Controllers\Auth\LoginController):
+    // { token, user: { id, tenant_id, email, name, role } } - no
+    // userAbilityRules from the server, since CASL is a frontend-only
+    // UX layer (§1) built here from the returned role, not issued by
+    // the API.
     const res = await $api('/auth/login', {
       method: 'POST',
       body: {
@@ -52,12 +58,13 @@ const login = async () => {
       },
     })
 
-    const { accessToken, userData, userAbilityRules } = res
+    const { token, user } = res
+    const userAbilityRules = buildAbilityRulesForRole(user.role)
 
     useCookie('userAbilityRules').value = userAbilityRules
     ability.update(userAbilityRules)
-    useCookie('userData').value = userData
-    useCookie('accessToken').value = accessToken
+    useCookie('userData').value = user
+    useCookie('accessToken').value = token
 
     // Redirect to `to` query if exist or redirect to index route
 
@@ -129,20 +136,6 @@ const onSubmit = () => {
             Please sign-in to your account and start the adventure
           </p>
         </VCardText>
-        <VCardText>
-          <VAlert
-            color="primary"
-            variant="tonal"
-          >
-            <p class="text-caption mb-2 text-primary">
-              Admin Email: <strong>admin@demo.com</strong> / Pass: <strong>admin</strong>
-            </p>
-            <p class="text-caption mb-0 text-primary">
-              Client Email: <strong>client@demo.com</strong> / Pass: <strong>client</strong>
-            </p>
-          </VAlert>
-        </VCardText>
-
         <VCardText>
           <VForm
             ref="refVForm"
