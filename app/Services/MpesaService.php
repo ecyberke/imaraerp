@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Models\MpesaStkRequest;
 use App\Models\Party;
 use App\Models\Tenant;
+use App\Models\TenantFeatureFlag;
 use App\Models\User;
 use App\Support\BusinessTime;
 use App\Support\Money;
@@ -27,6 +28,7 @@ class MpesaService
     public function __construct(
         private IntegrationCredentialService $credentials,
         private PaymentService $payments,
+        private FeatureFlagService $flags,
     ) {}
 
     private function baseUrl(string $environment): string
@@ -79,6 +81,7 @@ class MpesaService
 
     public function initiateStkPush(Tenant $tenant, Party $party, Money $amount, string $phoneNumber, ?Invoice $invoice, User $initiatedBy): MpesaStkRequest
     {
+        $this->flags->ensureEnabled($tenant, TenantFeatureFlag::MPESA);
         $creds = $this->credentialsFor($tenant);
         $phone = $this->normalizePhone($phoneNumber);
         $timestamp = BusinessTime::now()->format('YmdHis');
@@ -136,6 +139,10 @@ class MpesaService
      * derived entirely from the MpesaStkRequest the CheckoutRequestID
      * resolves to, looked up without the tenant scope for exactly that
      * reason.
+     *
+     * Not gated by the mpesa.enabled flag: a callback can only settle a
+     * request created while the flag was on, and dropping it after a
+     * later switch-off would lose a real customer payment.
      */
     public function handleCallback(array $payload): ?MpesaStkRequest
     {

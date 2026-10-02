@@ -9,7 +9,9 @@ use App\Models\Payment;
 use App\Models\Role;
 use App\Models\SalesOrder;
 use App\Models\Tenant;
+use App\Models\TenantFeatureFlag;
 use App\Models\User;
+use App\Services\FeatureFlagService;
 use App\Services\IntegrationCredentialService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -34,6 +36,8 @@ class MpesaIntegrationTest extends TestCase
     {
         parent::setUp();
         $this->tenant = Tenant::create(['name' => 'Acme Builders', 'status' => 'active', 'plan_tier' => 'starter']);
+        // TASK-100: integrations default OFF; these tests exercise the enabled path.
+        app(FeatureFlagService::class)->set($this->tenant, TenantFeatureFlag::MPESA, true, 'test', 'test');
         $this->kes = Currency::where('tenant_id', $this->tenant->id)->where('is_base', true)->first();
     }
 

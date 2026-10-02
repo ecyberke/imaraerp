@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\EtimsItemClassification;
 use App\Models\EtimsSubmission;
 use App\Models\Tenant;
+use App\Models\TenantFeatureFlag;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -42,7 +43,10 @@ use Illuminate\Support\Facades\Http;
  */
 class EtimsService
 {
-    public function __construct(private IntegrationCredentialService $credentials) {}
+    public function __construct(
+        private IntegrationCredentialService $credentials,
+        private FeatureFlagService $flags,
+    ) {}
 
     private function baseUrl(string $environment): string
     {
@@ -94,6 +98,7 @@ class EtimsService
      */
     public function initializeDevice(Tenant $tenant): EtimsSubmission
     {
+        $this->flags->ensureEnabled($tenant, TenantFeatureFlag::ETIMS);
         $creds = $this->credentialsFor($tenant, requireCmcKey: false);
 
         $payload = ['tin' => $creds['tin'], 'bhfId' => $creds['bhf_id'], 'dvcSrlNo' => $creds['dvc_srl_no']];
@@ -136,6 +141,7 @@ class EtimsService
      */
     public function syncItemClassifications(Tenant $tenant): EtimsSubmission
     {
+        $this->flags->ensureEnabled($tenant, TenantFeatureFlag::ETIMS);
         $creds = $this->credentialsFor($tenant, requireCmcKey: true);
 
         $payload = ['tin' => $creds['tin'], 'bhfId' => $creds['bhf_id'], 'lastReqDt' => '20200101000000'];

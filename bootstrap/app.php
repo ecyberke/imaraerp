@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\IntegrationDisabledException;
 use App\Exceptions\NoOpenAccountingPeriodException;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\AssignCorrelationId;
@@ -43,5 +44,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (NoOpenAccountingPeriodException $e, Request $request) {
             return response()->json(['message' => $e->getMessage()], 422);
+        });
+        $exceptions->render(function (IntegrationDisabledException $e, Request $request) {
+            return response()->json(['message' => $e->getMessage(), 'flag' => $e->flag], 403);
         });
     })->create();

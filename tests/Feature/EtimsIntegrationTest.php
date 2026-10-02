@@ -7,7 +7,9 @@ use App\Models\EtimsSubmission;
 use App\Models\IntegrationCredential;
 use App\Models\Role;
 use App\Models\Tenant;
+use App\Models\TenantFeatureFlag;
 use App\Models\User;
+use App\Services\FeatureFlagService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -32,6 +34,8 @@ class EtimsIntegrationTest extends TestCase
     {
         parent::setUp();
         $this->tenant = Tenant::create(['name' => 'Acme Builders', 'status' => 'active', 'plan_tier' => 'starter']);
+        // TASK-100: integrations default OFF; these tests exercise the enabled path.
+        app(FeatureFlagService::class)->set($this->tenant, TenantFeatureFlag::ETIMS, true, 'test', 'test');
     }
 
     private function headersFor(string $email, string $role): array
