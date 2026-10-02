@@ -1,0 +1,61 @@
+schema: forge/verification/dimensions/v2
+# Every command fails the gate on its own failure (set -e). A report that cannot fail is not a gate.
+dimensions:
+  build:
+    command: "set -e; composer install --no-interaction --prefer-dist --no-progress; npm ci; npm run build"
+    timeout_s: 900
+  typecheck:
+    command: "set -e; vendor/bin/phpstan analyse --memory-limit=1G --no-progress"
+    timeout_s: 900
+    classification_hints:
+      - { pattern: "\\[ERROR\\] Found [0-9]+ error", type: TYPE_ERROR }
+  lint:
+    command: "set -e; vendor/bin/pint --test; npx eslint --max-warnings=0 resources/js"
+    timeout_s: 300
+  unit:
+    command: "set -e; mkdir -p storage/logs/forge; php artisan test --testsuite=Unit --stop-on-failure --log-junit storage/logs/forge/unit.xml"
+    report: { format: junit, path: storage/logs/forge/unit.xml }
+    timeout_s: 600
+  integration:
+    command: "set -e; mkdir -p storage/logs/forge; php artisan test --testsuite=Feature --exclude-group=slow-load --log-junit storage/logs/forge/integration.xml"
+    report: { format: junit, path: storage/logs/forge/integration.xml, min_tests: 240 }
+    timeout_s: 1800
+    classification_hints:
+      - { pattern: "SQLSTATE\\[08006\\]", type: ENVIRONMENT_ERROR }
+  contract:
+    command: "set -e; mkdir -p storage/logs/forge; php artisan scramble:export --path=storage/openapi.json; php artisan test --filter=OpenApiContractTest --log-junit storage/logs/forge/contract.xml"
+    report: { format: junit, path: storage/logs/forge/contract.xml }
+    timeout_s: 600
+  e2e:
+    command: "set -e; npx playwright test --reporter=line"
+    timeout_s: 1800
+  security:
+    command: "set -e; mkdir -p storage/logs/forge; composer audit --locked; npm audit --audit-level=high --omit=dev; gitleaks detect --no-banner --redact; php artisan test --testsuite=Security --log-junit storage/logs/forge/security.xml"
+    report: { format: junit, path: storage/logs/forge/security.xml }
+    timeout_s: 1200
+    classification_hints:
+      - { pattern: "Found [1-9][0-9]* security vulnerability", type: SECURITY_FAILURE }
+      - { pattern: "leaks found: [1-9]", type: SECURITY_FAILURE }
+  accessibility:
+    command: "set -e; npx playwright test e2e/a11y.spec.js --reporter=line"
+    timeout_s: 900
+  performance:
+    command: "set -e; php artisan test --filter='QueryCountListEndpointsTest|ForeignKeyIndexAuditTest'; node scripts/perf/check-bundle-size.mjs; k6 run --vus 30 --duration 2m tests/load/main.js; php artisan perf:explain-top-queries --fail-on-seqscan"
+    timeout_s: 1800
+    classification_hints:
+      - { pattern: "thresholds on metrics .* have been crossed", type: PERFORMANCE_FAILURE }
+      - { pattern: "Seq Scan", type: PERFORMANCE_FAILURE }
+  reliability:
+    command: "set -e; php artisan test --filter='IntegrationResilienceTest|MpesaReconciliationJobTest|TenantContextJobsTest|IdempotencyKeyConcurrencyTest|MpesaCallbackConcurrencyTest'"
+    timeout_s: 1200
+  runtime:
+    command: "set -e; curl -fsS http://127.0.0.1:8000/up; curl -fsS http://127.0.0.1:8000/api/ready"
+    timeout_s: 120
+  adversarial:
+    command: "set -e; php artisan test --testsuite=Security --group=adversarial"
+    timeout_s: 1800
+  self_audit:
+    command: "set -e; php artisan forge:self-audit --write .forge/self-audit.yaml"
+    timeout_s: 600
+# persistence and clean_room are driven by .forge/runtime.yaml (Forge boots the app itself);
+# they are deliberately NOT declared here as commands — a `true` command would be a fake gate.

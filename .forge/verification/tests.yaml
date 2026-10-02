@@ -1,0 +1,630 @@
+schema: forge/verification/tests/v2
+# Registry granularity: one entry per test file (the installed Forge schema has no per-file case-count
+# field; `cases` is reserved for derived POLICY-* case ids). Case counts are in each `purpose` and
+# reconciled against `phpunit --list-tests` at eeb528c by TASK-102: 27 suite files, 248 cases.
+# Not registered: tests/Unit/ExampleTest.php and tests/Feature/ExampleTest.php (1 case each,
+# framework scaffold, deleted by TASK-104), and the never-run root-level LedgerPostingServiceTest.php
+# (KI-013). Entries TEST-030 onward point at files later tasks create; they do not exist yet.
+TEST-001:
+  purpose: 'Phase 0 foundation: tenancy, 404 isolation, audit write, period auto-forward, MFA gate (13 cases)'
+  verifies:
+  - REQ-001
+  - REQ-003
+  - REQ-004
+  implementation:
+    type: integration
+    path: tests/Feature/Phase0FoundationTest.php
+    runner: phpunit
+TEST-002:
+  purpose: Bearer login round-trip (2)
+  verifies:
+  - REQ-002
+  implementation:
+    type: integration
+    path: tests/Feature/AuthTest.php
+    runner: phpunit
+TEST-003:
+  purpose: 'Platform ops: /ready, correlation IDs, lockout, idempotency replay, token revocation (9)'
+  verifies:
+  - REQ-002
+  - REQ-023
+  - NFR-003
+  implementation:
+    type: integration
+    path: tests/Feature/PlatformOpsTest.php
+    runner: phpunit
+TEST-004:
+  purpose: "Document sequence format and independent counters \u2014 sequential only (4)"
+  verifies:
+  - REQ-007
+  implementation:
+    type: integration
+    path: tests/Feature/DocumentSequenceServiceTest.php
+    runner: phpunit
+TEST-005:
+  purpose: Tenant provisioning and invitation lifecycle (5)
+  verifies:
+  - REQ-001
+  implementation:
+    type: integration
+    path: tests/Feature/TenantProvisioningTest.php
+    runner: phpunit
+TEST-006:
+  purpose: Money integer-cent arithmetic (8)
+  verifies:
+  - REQ-006
+  implementation:
+    type: unit
+    path: tests/Unit/MoneyTest.php
+    runner: phpunit
+TEST-007:
+  purpose: Ledger posting rules, one per posting type (65)
+  verifies:
+  - REQ-006
+  - INV-001
+  implementation:
+    type: integration
+    path: tests/Feature/LedgerPostingServiceTest.php
+    runner: phpunit
+TEST-008:
+  purpose: Billing cycle, credit approval, retention cap, WHT, write-off, opening balance (14)
+  verifies:
+  - REQ-012
+  - INV-013
+  implementation:
+    type: integration
+    path: tests/Feature/FinanceBillingTest.php
+    runner: phpunit
+TEST-009:
+  purpose: Two concurrent credit checks, one passes (real subprocesses) (1)
+  verifies:
+  - INV-006
+  implementation:
+    type: integration
+    path: tests/Feature/CreditApprovalConcurrencyTest.php
+    runner: phpunit
+TEST-010:
+  purpose: Report tie-outs and dashboards (8)
+  verifies:
+  - REQ-019
+  implementation:
+    type: integration
+    path: tests/Feature/ReportsAndDashboardsTest.php
+    runner: phpunit
+TEST-011:
+  purpose: Master data CRUD, validation, role denials (13)
+  verifies:
+  - REQ-008
+  - POLICY-008
+  implementation:
+    type: integration
+    path: tests/Feature/MasterDataTest.php
+    runner: phpunit
+TEST-012:
+  purpose: Inventory round-trip and reservation rules (8)
+  verifies:
+  - REQ-010
+  implementation:
+    type: integration
+    path: tests/Feature/InventoryCoreTest.php
+    runner: phpunit
+TEST-013:
+  purpose: Last-unit hard reservation race (real subprocesses) (1)
+  verifies:
+  - INV-005
+  implementation:
+    type: integration
+    path: tests/Feature/InventoryConcurrencyTest.php
+    runner: phpunit
+TEST-014:
+  purpose: PR to ledger round trip, partial GRN, FX, progress claims (8)
+  verifies:
+  - REQ-011
+  implementation:
+    type: integration
+    path: tests/Feature/ProcurementTest.php
+    runner: phpunit
+TEST-015:
+  purpose: Quotation, feasibility, delivery, BOQ import staging (9)
+  verifies:
+  - REQ-009
+  implementation:
+    type: integration
+    path: tests/Feature/CrmSalesBoqTest.php
+    runner: phpunit
+TEST-016:
+  purpose: Measurement sheet certification (1)
+  verifies:
+  - REQ-009
+  implementation:
+    type: integration
+    path: tests/Feature/MeasurementSheetTest.php
+    runner: phpunit
+TEST-017:
+  purpose: Production orders and BOM variance (5)
+  verifies:
+  - REQ-013
+  implementation:
+    type: integration
+    path: tests/Feature/ManufacturingTest.php
+    runner: phpunit
+TEST-018:
+  purpose: Resource assignment lifecycle (9)
+  verifies:
+  - REQ-014
+  implementation:
+    type: integration
+    path: tests/Feature/LabourResourcingTest.php
+    runner: phpunit
+TEST-019:
+  purpose: Project lifecycle, milestones, VOs, defects (10)
+  verifies:
+  - REQ-015
+  implementation:
+    type: integration
+    path: tests/Feature/ProjectsMilestonesUiTest.php
+    runner: phpunit
+TEST-020:
+  purpose: Concurrent milestone sign-off (real subprocesses) (1)
+  verifies:
+  - INV-007
+  implementation:
+    type: integration
+    path: tests/Feature/MilestoneSignOffConcurrencyTest.php
+    runner: phpunit
+TEST-021:
+  purpose: Concurrent VO approvals on one BOQ line (real subprocesses) (1)
+  verifies:
+  - INV-008
+  implementation:
+    type: integration
+    path: tests/Feature/VariationOrderApprovalConcurrencyTest.php
+    runner: phpunit
+TEST-022:
+  purpose: Asset lifecycle and depreciation (12)
+  verifies:
+  - REQ-016
+  - INV-016
+  implementation:
+    type: integration
+    path: tests/Feature/FixedAssetsPlantTest.php
+    runner: phpunit
+TEST-023:
+  purpose: Payroll, contracts, settlement, casual conversion (10)
+  verifies:
+  - REQ-017
+  - INV-014
+  - INV-015
+  implementation:
+    type: integration
+    path: tests/Feature/HrPayrollTest.php
+    runner: phpunit
+TEST-024:
+  purpose: "Approval limits, notifications, compliance documents (9) \u2014 PR #18"
+  verifies:
+  - REQ-018
+  implementation:
+    type: integration
+    path: tests/Feature/ApprovalNotificationComplianceTest.php
+    runner: phpunit
+TEST-025:
+  purpose: "M-Pesa credentials, STK initiate, callbacks, sequential duplicate (8) \u2014 PR #19"
+  verifies:
+  - REQ-020
+  - REQ-024
+  implementation:
+    type: integration
+    path: tests/Feature/MpesaIntegrationTest.php
+    runner: phpunit
+TEST-026:
+  purpose: "eTIMS device init and code sync against a guessed response shape (7) \u2014 PR #20"
+  verifies:
+  - REQ-021
+  implementation:
+    type: integration
+    path: tests/Feature/EtimsIntegrationTest.php
+    runner: phpunit
+TEST-030:
+  purpose: Concurrent document-number issue, gap-free and unique (real subprocesses)
+  verifies:
+  - INV-004
+  - REQ-007
+  implementation:
+    type: integration
+    path: tests/Feature/DocumentSequenceConcurrencyTest.php
+    runner: phpunit
+TEST-031:
+  purpose: Concurrent approval decisions on one stage (real subprocesses)
+  verifies:
+  - INV-009
+  - REQ-018
+  implementation:
+    type: integration
+    path: tests/Feature/ApprovalDecisionConcurrencyTest.php
+    runner: phpunit
+TEST-032:
+  purpose: DLP job vs manual closure race (real subprocesses)
+  verifies:
+  - INV-012
+  - REQ-015
+  implementation:
+    type: integration
+    path: tests/Feature/ProjectClosureDlpConcurrencyTest.php
+    runner: phpunit
+TEST-033:
+  purpose: Parallel duplicate Daraja callbacks plus reconciliation, one Payment
+  verifies:
+  - INV-010
+  - REQ-032
+  implementation:
+    type: integration
+    path: tests/Feature/MpesaCallbackConcurrencyTest.php
+    runner: phpunit
+TEST-034:
+  purpose: Parallel requests with one idempotency key, one effect
+  verifies:
+  - INV-011
+  - REQ-023
+  implementation:
+    type: integration
+    path: tests/Feature/IdempotencyKeyConcurrencyTest.php
+    runner: phpunit
+TEST-035:
+  purpose: Direct SQL UPDATE/DELETE on posted journal and audit rows is rejected; unbalanced entry cannot commit
+  verifies:
+  - INV-002
+  - REQ-036
+  implementation:
+    type: integration
+    path: tests/Feature/LedgerImmutabilityTriggerTest.php
+    runner: phpunit
+TEST-036:
+  purpose: Every money-bearing model carries the audit observer; mass update/delete is refused
+  verifies:
+  - REQ-022
+  implementation:
+    type: unit
+    path: tests/Architecture/AuditCoverageArchitectureTest.php
+    runner: phpunit
+TEST-037:
+  purpose: Jobs and commands run only inside an explicit TenantContext; missing context throws
+  verifies:
+  - INV-017
+  - REQ-037
+  implementation:
+    type: integration
+    path: tests/Feature/TenantContextJobsTest.php
+    runner: phpunit
+TEST-038:
+  purpose: Migrations touching financial tables are additive only
+  verifies:
+  - NFR-005
+  implementation:
+    type: unit
+    path: tests/Architecture/MigrationSafetyLintTest.php
+    runner: phpunit
+TEST-039:
+  purpose: List endpoints issue a bounded number of queries
+  verifies:
+  - NFR-001
+  implementation:
+    type: performance
+    path: tests/Feature/QueryCountListEndpointsTest.php
+    runner: phpunit
+TEST-040:
+  purpose: Every foreign key and declared composite index exists
+  verifies:
+  - NFR-001
+  implementation:
+    type: performance
+    path: tests/Architecture/ForeignKeyIndexAuditTest.php
+    runner: phpunit
+TEST-041:
+  purpose: Every /api response validates against the generated OpenAPI document
+  verifies:
+  - NFR-008
+  implementation:
+    type: contract
+    path: tests/Contract/OpenApiContractTest.php
+    runner: phpunit
+TEST-042:
+  purpose: Timeouts, retry policy, circuit breaker and outbox dead-lettering per provider
+  verifies:
+  - REQ-041
+  implementation:
+    type: integration
+    path: tests/Feature/IntegrationResilienceTest.php
+    runner: phpunit
+TEST-043:
+  purpose: Pending STK requests are confirmed or expired by the reconciliation job
+  verifies:
+  - REQ-032
+  implementation:
+    type: integration
+    path: tests/Feature/MpesaReconciliationJobTest.php
+    runner: phpunit
+TEST-044:
+  purpose: PO cancel and short-close rules and Project.cancel() resolution
+  verifies:
+  - REQ-038
+  implementation:
+    type: integration
+    path: tests/Feature/PurchaseOrderCancellationTest.php
+    runner: phpunit
+TEST-045:
+  purpose: Employee anonymisation keeps payslip amounts; tenant export and soft-delete lifecycle; last admin cannot leave
+  verifies:
+  - REQ-040
+  - POLICY-009
+  - POLICY-015
+  implementation:
+    type: integration
+    path: tests/Feature/DataSubjectRightsTest.php
+    runner: phpunit
+TEST-046:
+  purpose: Integration calls refuse to run while the tenant flag is off; default off, per-tenant, operator-only audited toggle (7) — PR #21
+  verifies:
+  - REQ-045
+  implementation:
+    type: integration
+    path: tests/Feature/FeatureFlagTest.php
+    runner: phpunit
+TEST-048:
+  purpose: eTIMS sales submission through outbox (blocked on sandbox)
+  verifies:
+  - REQ-044
+  implementation:
+    type: integration
+    path: tests/Feature/EtimsSalesSubmissionTest.php
+    runner: phpunit
+TEST-049:
+  purpose: Subcontract and progress-claim settle/dispute
+  verifies:
+  - REQ-039
+  implementation:
+    type: integration
+    path: tests/Feature/SubcontractSettlementTest.php
+    runner: phpunit
+TEST-050:
+  purpose: Module dashboards return tenant-scoped aggregates
+  verifies:
+  - REQ-042
+  implementation:
+    type: integration
+    path: tests/Feature/ModuleDashboardsTest.php
+    runner: phpunit
+TEST-051:
+  purpose: 'Property test: random valid posting sequences keep the trial balance at zero'
+  verifies:
+  - INV-003
+  implementation:
+    type: unit
+    path: tests/Property/TrialBalancePropertyTest.php
+    runner: phpunit
+TEST-052:
+  purpose: k6 load test at declared rps with per-class p95 budgets
+  verifies:
+  - NFR-001
+  implementation:
+    type: performance
+    path: tests/load/main.js
+    runner: k6
+TEST-053:
+  purpose: 'Restore drill: restore to scratch, reconcile and repost (scripted portion)'
+  verifies:
+  - NFR-002
+  implementation:
+    type: integration
+    path: scripts/ops/restore-drill.sh
+    runner: k6
+SEC-TEST-001:
+  purpose: Authorization matrix generated from domain.yaml (allow, deny, other-tenant 404, unauthenticated 401)
+  verifies:
+  - REQ-005
+  - POLICY-001
+  - POLICY-002
+  - POLICY-003
+  - POLICY-004
+  - POLICY-005
+  - POLICY-006
+  - POLICY-007
+  - POLICY-008
+  - POLICY-009
+  - POLICY-010
+  - POLICY-011
+  - POLICY-012
+  - POLICY-013
+  - POLICY-014
+  - POLICY-015
+  implementation:
+    type: security
+    path: tests/Security/AuthorizationMatrixTest.php
+    runner: phpunit
+SEC-TEST-002:
+  purpose: Cross-tenant HTTP sweep over every resource route returns 404
+  verifies:
+  - REQ-004
+  - REQ-037
+  implementation:
+    type: security
+    path: tests/Security/CrossTenantHttpIsolationTest.php
+    runner: phpunit
+SEC-TEST-003:
+  purpose: Finance cannot read payslips or salary-bearing audit rows; HR Manager and Admin can read payslips through PayrollRunPolicy@view (ASM-007), and every payslip read writes an audit log entry
+  verifies:
+  - REQ-031
+  - POLICY-004
+  - POLICY-005
+  - POLICY-014
+  implementation:
+    type: security
+    path: tests/Security/PayrollConfidentialityTest.php
+    runner: phpunit
+SEC-TEST-004:
+  purpose: Token expiry, idle timeout, logout-everywhere, recovery codes, TOTP replay
+  verifies:
+  - REQ-033
+  implementation:
+    type: security
+    path: tests/Security/TokenLifecycleTest.php
+    runner: phpunit
+SEC-TEST-005:
+  purpose: Login rate limiting per IP and per account plus lockout
+  verifies:
+  - REQ-002
+  implementation:
+    type: security
+    path: tests/Security/LoginAbuseTest.php
+    runner: phpunit
+SEC-TEST-006:
+  purpose: Named limiters, 429 with Retry-After, per-tenant isolation of limits
+  verifies:
+  - REQ-034
+  implementation:
+    type: security
+    path: tests/Security/RateLimitTest.php
+    runner: phpunit
+SEC-TEST-007:
+  purpose: 'Upload rejection: spoofed MIME, macro workbook, XXE, zip bomb, oversize, path traversal names'
+  verifies:
+  - REQ-035
+  implementation:
+    type: security
+    path: tests/Security/UploadSecurityTest.php
+    runner: phpunit
+SEC-TEST-008:
+  purpose: Callbacks with bad token, foreign IP, unknown CheckoutRequestID or mismatched amount never settle
+  verifies:
+  - REQ-032
+  - POLICY-003
+  implementation:
+    type: security
+    path: tests/Security/MpesaCallbackTrustTest.php
+    runner: phpunit
+SEC-TEST-009:
+  purpose: Same user cannot satisfy both approval stages, even holding two roles
+  verifies:
+  - REQ-018
+  - POLICY-006
+  - POLICY-012
+  implementation:
+    type: security
+    path: tests/Security/MakerCheckerBypassTest.php
+    runner: phpunit
+SEC-TEST-010:
+  purpose: Secrets never appear in logs, API responses or retained raw provider responses
+  verifies:
+  - REQ-024
+  - POLICY-007
+  implementation:
+    type: security
+    path: tests/Security/SecretsRedactionTest.php
+    runner: phpunit
+SEC-TEST-011:
+  purpose: HSTS, CSP, CORS per environment, no stateful Sanctum
+  verifies:
+  - NFR-004
+  implementation:
+    type: security
+    path: tests/Security/SecurityHeadersTest.php
+    runner: phpunit
+SEC-TEST-012:
+  purpose: Every mutating route reachable by Finance/Admin carries the mfa middleware
+  verifies:
+  - REQ-003
+  implementation:
+    type: security
+    path: tests/Security/MfaEnforcementRouteSweepTest.php
+    runner: phpunit
+SEC-TEST-013:
+  purpose: Ledger tamper attempts through Eloquent mass update and raw SQL fail
+  verifies:
+  - REQ-036
+  - POLICY-001
+  implementation:
+    type: security
+    path: tests/Security/LedgerTamperTest.php
+    runner: phpunit
+SEC-TEST-014:
+  purpose: Deactivating a user or changing their role revokes all of that user's tokens immediately; a deactivated user cannot log in; only Admin can do it; the last Admin cannot be removed (planned, TASK-124)
+  verifies:
+  - REQ-050
+  - POLICY-015
+  implementation:
+    type: security
+    path: tests/Security/UserAccessRevocationTest.php
+    runner: phpunit
+E2E-001:
+  purpose: Lead to quotation to direct sale to delivery to invoice to payment
+  verifies:
+  - REQ-009
+  - REQ-012
+  - JRN-001
+  implementation:
+    type: e2e
+    path: e2e/jrn-001.spec.js
+    runner: playwright
+E2E-002:
+  purpose: Requisition to PO to GRN to QC to stock
+  verifies:
+  - REQ-011
+  - JRN-002
+  implementation:
+    type: e2e
+    path: e2e/jrn-002.spec.js
+    runner: playwright
+E2E-003:
+  purpose: Project milestone billing from BOQ and retention release gated by defects
+  verifies:
+  - REQ-015
+  - REQ-012
+  - JRN-003
+  implementation:
+    type: e2e
+    path: e2e/jrn-003.spec.js
+    runner: playwright
+E2E-004:
+  purpose: Payroll run, approve, disburse, remit
+  verifies:
+  - REQ-017
+  - JRN-004
+  implementation:
+    type: e2e
+    path: e2e/jrn-004.spec.js
+    runner: playwright
+E2E-005:
+  purpose: Finance user enrols MFA then posts a credit approval
+  verifies:
+  - REQ-003
+  - JRN-005
+  implementation:
+    type: e2e
+    path: e2e/jrn-005.spec.js
+    runner: playwright
+E2E-006:
+  purpose: M-Pesa STK collection against a Daraja stub
+  verifies:
+  - REQ-020
+  - REQ-032
+  - JRN-006
+  implementation:
+    type: e2e
+    path: e2e/jrn-006.spec.js
+    runner: playwright
+E2E-007:
+  purpose: Tenant provisioning and first-run checklist
+  verifies:
+  - REQ-001
+  - JRN-007
+  implementation:
+    type: e2e
+    path: e2e/jrn-007.spec.js
+    runner: playwright
+E2E-008:
+  purpose: axe-core WCAG 2.1 AA sweep of core screens
+  verifies:
+  - REQ-043
+  implementation:
+    type: accessibility
+    path: e2e/a11y.spec.js
+    runner: playwright

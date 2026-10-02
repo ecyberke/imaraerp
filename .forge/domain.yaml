@@ -1,0 +1,1681 @@
+schema: forge/domain/v2
+# Brownfield entities (TASK-102): generated from the PostgreSQL catalog after running all 122
+# migrations on a fresh database at eeb528c, one entry per Eloquent model (106 models <-> 106 tables).
+# Field strings are the real column definitions: type, pk, fk -> table.column [on delete ...],
+# null/not null, default, unique / unique(cols) (a composite unique sits on its last column).
+# `indexes` lists only non-unique, non-PK indexes. No CHECK constraints exist, so status values are
+# enforced in application code only. Laravel infrastructure tables without an app model (cache,
+# cache_locks, jobs, job_batches, failed_jobs, migrations, sessions, password_reset_tokens,
+# personal_access_tokens) are listed in baselines/inventory.yaml, not here.
+entities:
+  AccountingPeriod:   # table: accounting_periods
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      start_date: date not null
+      end_date: date not null
+      status: character varying(255) not null default 'open'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, status]
+  AnalyticAccount:   # table: analytic_accounts
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      cost_code: character varying(255) not null unique(tenant_id, cost_code)
+      name: character varying(255) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  ApprovalLimit:   # table: approval_limits
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      role_id: bigint fk -> roles.id not null
+      entity_type: character varying(255) not null unique(tenant_id, role_id, entity_type)
+      max_amount_cents: bigint not null
+      requires_second_approval_above_cents: bigint null
+      second_approver_role_id: bigint fk -> roles.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Asset:   # table: assets
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      asset_number: character varying(255) not null unique(tenant_id, asset_number)
+      name: character varying(255) not null
+      category_id: bigint fk -> asset_categories.id not null
+      asset_type: character varying(255) not null
+      serial_number: character varying(255) null
+      location_id: bigint null
+      custodian_party_id: bigint fk -> parties.id on delete set null null
+      date_of_purchase: date not null
+      purchase_cost_cents: bigint not null
+      residual_value_cents: bigint not null default '0'
+      useful_life_years: integer not null
+      depreciation_method: character varying(255) not null
+      warranty_years: integer null
+      status: character varying(255) not null default 'in_use'
+      lifespan_change_reason: text null
+      schedule_reset_at: date null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  AssetAssignment:   # table: asset_assignments
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      asset_id: bigint fk -> assets.id not null
+      project_id: bigint fk -> projects.id not null
+      assigned_date: date not null
+      released_date: date null
+      internal_daily_rate_cents: bigint not null
+      meter_reading_start: numeric(12,2) null
+      meter_reading_end: numeric(12,2) null
+      status: character varying(255) not null default 'active'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  AssetCategory:   # table: asset_categories
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      name: character varying(255) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  AssetComponent:   # table: asset_components
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      asset_id: bigint fk -> assets.id on delete cascade not null
+      name: character varying(255) not null
+      purchase_cost_cents: bigint not null
+      residual_value_cents: bigint not null default '0'
+      useful_life_years: integer not null
+      depreciation_method: character varying(255) not null
+      lifespan_change_reason: text null
+      schedule_reset_at: date null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  AssetDepreciationEntry:   # table: asset_depreciation_entries
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      asset_id: bigint fk -> assets.id on delete cascade null
+      asset_component_id: bigint fk -> asset_components.id on delete cascade null
+      period: date not null unique(asset_component_id, period) unique(asset_id, period)
+      depreciation_amount_cents: bigint not null
+      accumulated_depreciation_cents: bigint not null
+      net_book_value_cents: bigint not null
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone not null default CURRENT_TIMESTAMP
+  AssetDisposal:   # table: asset_disposals
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      asset_id: bigint fk -> assets.id not null
+      disposal_date: date not null
+      disposal_type: character varying(255) not null
+      sale_proceeds_cents: bigint not null default '0'
+      sold_on_credit: boolean not null default false
+      net_book_value_at_disposal_cents: bigint not null
+      gain_loss_amount_cents: bigint not null
+      status: character varying(255) not null default 'completed'
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  AssetRevaluation:   # table: asset_revaluations
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      asset_id: bigint fk -> assets.id not null
+      revaluation_date: date not null
+      net_book_value_at_revaluation_cents: bigint not null
+      accumulated_depreciation_at_revaluation_cents: bigint not null
+      new_valuation_cents: bigint not null
+      new_residual_value_cents: bigint null
+      new_useful_life_years: integer null
+      reason: text not null
+      approved_by: bigint fk -> users.id on delete set null null
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  AuditLog:   # table: audit_logs
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete set null null
+      user_id: bigint fk -> users.id on delete set null null
+      action: character varying(255) not null
+      entity_type: character varying(255) not null
+      entity_id: bigint not null
+      old_values: json null
+      new_values: json null
+      ip_address: character varying(255) null
+      created_at: timestamp(0) without time zone not null default CURRENT_TIMESTAMP
+    indexes:
+      - [tenant_id, entity_type, entity_id]
+  BankAccount:   # table: bank_accounts
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      bank_name: character varying(255) not null
+      account_number: character varying(255) not null
+      currency_id: bigint fk -> currencies.id not null
+      gl_account_id: bigint fk -> chart_of_accounts.id not null
+      status: character varying(255) not null default 'active'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  BillOfMaterial:   # table: bill_of_materials
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      finished_good_item_id: bigint fk -> items.id not null
+      wastage_allowance_pct: numeric(6,4) not null default '0'
+      tolerance_pct: numeric(6,4) null
+      source: character varying(255) not null
+      project_id: bigint fk -> projects.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, finished_good_item_id]
+  BillOfMaterialLine:   # table: bill_of_material_lines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      bill_of_materials_id: bigint fk -> bill_of_materials.id on delete cascade not null
+      raw_material_item_id: bigint fk -> items.id not null
+      quantity: numeric(15,4) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [bill_of_materials_id]
+  Boq:   # table: boqs
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      boqable_type: character varying(255) not null
+      boqable_id: bigint not null
+      revised_contract_value_cents: bigint null
+      uses_sections: boolean not null default false
+      source: character varying(255) not null default 'manual'
+      source_file_path: character varying(255) null
+      status: character varying(255) not null default 'draft'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, boqable_type, boqable_id]
+  BoqImportStaging:   # table: boq_import_stagings
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      project_id: bigint fk -> projects.id on delete set null null
+      boq_id: bigint fk -> boqs.id on delete set null null
+      source_file_path: character varying(255) null
+      raw_row_data: json not null
+      mapped_item_id: bigint fk -> items.id on delete set null null
+      mapped_section: character varying(255) null
+      mapped_quantity: numeric(18,4) null
+      mapped_rate_cents: bigint null
+      status: character varying(255) not null default 'pending_review'
+      reviewed_by: bigint fk -> users.id on delete set null null
+      boq_line_id: bigint fk -> boq_lines.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  BoqLine:   # table: boq_lines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      boq_id: bigint fk -> boqs.id on delete cascade not null
+      section_id: bigint fk -> boq_sections.id on delete set null null
+      item_id: bigint fk -> items.id on delete set null null
+      description: character varying(255) not null
+      unit: character varying(255) null
+      quantity: numeric(18,4) not null
+      rate_cents: bigint not null
+      amount_cents: bigint not null
+      line_type: character varying(255) not null default 'measured'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  BoqSection:   # table: boq_sections
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      boq_id: bigint fk -> boqs.id on delete cascade not null
+      parent_section_id: bigint fk -> boq_sections.id on delete set null null
+      name: character varying(255) not null
+      sequence: integer not null default 0
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  CapitalMovement:   # table: capital_movements
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      direction: character varying(255) not null
+      amount_cents: bigint not null
+      party_id: bigint fk -> parties.id null
+      movement_date: date not null
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Category:   # table: categories
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      name: character varying(255) not null
+      parent_category_id: bigint fk -> categories.id on delete set null null
+      valuation_method: character varying(255) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  ChartOfAccount:   # table: chart_of_accounts
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      code: character varying(255) not null unique(tenant_id, code)
+      name: character varying(255) not null unique(tenant_id, name)
+      account_type: character varying(255) not null
+      sub_type: character varying(255) null
+      parent_account_id: bigint fk -> chart_of_accounts.id on delete set null null
+      is_contra: boolean not null default false
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, account_type]
+  ComplianceDocument:   # table: compliance_documents
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      party_id: bigint fk -> parties.id not null
+      document_type: character varying(255) not null
+      issue_date: date not null
+      expiry_date: date null
+      file_path: character varying(255) null
+      status: character varying(255) not null default 'valid'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  ContractRetentionTerms:   # table: contract_retention_terms
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      contract_type: character varying(255) not null
+      contract_id: bigint not null
+      direction: character varying(255) not null
+      retention_percentage: numeric(8,4) not null
+      retention_cap_cents: bigint null
+      first_release_trigger: character varying(255) not null default 'practical_completion'
+      second_release_trigger: character varying(255) not null default 'dlp_end'
+      dlp_duration_months: integer null
+      release_trigger_source: character varying(255) null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, contract_type, contract_id]
+  CreditApproval:   # table: credit_approvals
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      sales_order_id: bigint fk -> sales_orders.id null
+      invoice_id: bigint fk -> invoices.id null
+      requested_amount_cents: bigint not null
+      approved_by: bigint fk -> users.id on delete set null null
+      approved_at: timestamp(0) without time zone null
+      notes: text null
+      status: character varying(255) not null default 'pending'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+      second_approved_by: bigint fk -> users.id on delete set null null
+  CreditNote:   # table: credit_notes
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      document_number: character varying(255) null
+      invoice_id: bigint fk -> invoices.id not null
+      amount_cents: bigint not null
+      reason: character varying(255) not null
+      etr_serial_number: character varying(255) null
+      etims_invoice_number: character varying(255) null
+      note_date: date not null
+      posting_date: date not null
+      status: character varying(255) not null default 'draft'
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Currency:   # table: currencies
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      code: character varying(255) not null unique(tenant_id, code)
+      name: character varying(255) not null
+      is_base: boolean not null default false
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  DebitNote:   # table: debit_notes
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      document_number: character varying(255) null
+      invoice_id: bigint fk -> invoices.id not null
+      amount_cents: bigint not null
+      reason: character varying(255) not null
+      etr_serial_number: character varying(255) null
+      etims_invoice_number: character varying(255) null
+      note_date: date not null
+      posting_date: date not null
+      status: character varying(255) not null default 'draft'
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Defect:   # table: defects
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      project_id: bigint fk -> projects.id not null
+      subcontract_id: bigint fk -> subcontracts.id on delete set null null
+      milestone_id: bigint fk -> milestones.id on delete set null null
+      description: character varying(255) not null
+      severity: character varying(255) not null
+      blocks_retention: boolean not null default false
+      reported_by: bigint fk -> users.id on delete set null null
+      reported_date: date not null
+      target_fix_date: date null
+      status: character varying(255) not null default 'open'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Delivery:   # table: deliveries
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      sales_order_id: bigint fk -> sales_orders.id not null
+      warehouse_id: bigint fk -> warehouses.id not null
+      status: character varying(255) not null default 'pending'
+      delivered_at: timestamp(0) without time zone null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  DeliveryLine:   # table: delivery_lines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      delivery_id: bigint fk -> deliveries.id on delete cascade not null
+      sales_order_line_id: bigint fk -> sales_order_lines.id not null
+      quantity_delivered: numeric(18,4) not null
+      cogs_value_cents: bigint not null default '0'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  DemandTrigger:   # table: demand_triggers
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      source_type: character varying(255) not null
+      source_id: bigint null
+      item_id: bigint fk -> items.id not null
+      warehouse_id: bigint fk -> warehouses.id not null
+      quantity_needed: numeric(15,4) not null
+      status: character varying(255) not null default 'open'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, item_id, warehouse_id, status]
+  DocumentSequence:   # table: document_sequences
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      entity_type: character varying(255) not null
+      prefix: character varying(255) not null
+      fiscal_year: smallint not null unique(tenant_id, entity_type, fiscal_year)
+      next_number: bigint not null default '1'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  DummyRecord:   # table: dummy_records
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      created_by: bigint fk -> users.id not null
+      name: character varying(255) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+      record_date: date null
+      accounting_period_id: bigint fk -> accounting_periods.id null
+      original_intended_posting_date: date null
+  Employee:   # table: employees
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      employee_number: character varying(255) not null unique(tenant_id, employee_number)
+      name: character varying(255) not null
+      id_number: character varying(255) not null
+      kra_pin: character varying(255) not null
+      nssf_number: character varying(255) not null
+      shif_number: character varying(255) not null
+      helb_account_number: character varying(255) null
+      employment_type: character varying(255) not null
+      date_of_hire: date not null
+      date_of_exit: date null
+      cumulative_casual_days_worked: integer null
+      casual_conversion_due: boolean not null default false
+      status: character varying(255) not null default 'active'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  EmploymentContract:   # table: employment_contracts
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      employee_id: bigint fk -> employees.id not null
+      contract_type: character varying(255) not null
+      pay_frequency: character varying(255) not null
+      basic_salary_cents: bigint null
+      hourly_rate_cents: bigint null
+      daily_rate_cents: bigint null
+      overtime_multiplier_weekday: numeric(4,2) not null default 1.5
+      overtime_multiplier_restday: numeric(4,2) not null default '2'
+      start_date: date not null
+      end_date: date null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  EquipmentHireContract:   # table: equipment_hire_contracts
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      party_id: bigint fk -> parties.id not null
+      description: character varying(255) not null
+      project_id: bigint fk -> projects.id not null
+      hire_rate_cents: bigint not null
+      hire_start_date: date not null
+      hire_end_date: date null
+      invoiced_days: integer null
+      hire_invoice_mismatch: boolean not null default false
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  EtimsItemClassification:   # table: etims_item_classifications
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      code: character varying(255) not null unique(tenant_id, code)
+      name: character varying(255) null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  EtimsSubmission:   # table: etims_submissions
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      type: character varying(255) not null
+      status: character varying(255) not null default 'pending'
+      request_payload: json null
+      response_payload: json null
+      result_code: character varying(255) null
+      result_desc: character varying(255) null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  FeasibilityAssessment:   # table: feasibility_assessments
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      sales_order_id: bigint fk -> sales_orders.id on delete cascade not null
+      assessed_by: bigint fk -> users.id on delete set null null
+      assessed_at: timestamp(0) without time zone null
+      result: character varying(255) not null
+      notes: text null
+      conditions: text null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  FinalSettlement:   # table: final_settlements
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      employee_id: bigint fk -> employees.id not null
+      payslip_id: bigint fk -> payslips.id on delete set null null
+      last_working_day: date not null
+      days_worked_this_period: numeric(5,2) not null
+      accrued_leave_days: numeric(5,2) not null
+      leave_encashment_amount_cents: bigint null
+      final_paye_amount_cents: bigint not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  GRNLine:   # table: grn_lines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      grn_id: bigint fk -> goods_receipt_notes.id on delete cascade not null
+      purchase_order_line_id: bigint fk -> purchase_order_lines.id not null
+      item_id: bigint fk -> items.id not null
+      quantity_received: numeric(15,4) not null
+      unit_cost_cents: bigint not null
+      quarantine_status: character varying(255) not null default 'pending'
+      stock_quarantine_id: bigint fk -> stock_quarantines.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [grn_id]
+      - [purchase_order_line_id]
+  GoodsReceiptNote:   # table: goods_receipt_notes
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      purchase_order_id: bigint fk -> purchase_orders.id not null
+      quarantine_status: character varying(255) not null default 'pending'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  IdempotencyKey:   # table: idempotency_keys
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      key: character varying(255) not null unique(tenant_id, key)
+      endpoint: character varying(255) not null
+      response_payload: json null
+      created_at: timestamp(0) without time zone not null default CURRENT_TIMESTAMP
+  IntegrationCredential:   # table: integration_credentials
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      provider: character varying(255) not null unique(tenant_id, provider)
+      credentials: text not null
+      is_active: boolean not null default true
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Invoice:   # table: invoices
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      document_number: character varying(255) null
+      sales_order_id: bigint fk -> sales_orders.id null
+      party_id: bigint fk -> parties.id not null
+      invoice_date: date not null
+      posting_date: date not null
+      payment_terms: character varying(255) not null
+      credit_approval_status: character varying(255) not null default 'not_required'
+      gross_amount_cents: bigint not null
+      vat_amount_cents: bigint not null
+      retention_percentage: numeric(8,4) not null default '0'
+      retention_amount_cents: bigint not null default '0'
+      net_payable_cents: bigint not null
+      tax_code_id: bigint fk -> tax_codes.id null
+      etr_serial_number: character varying(255) null
+      etims_invoice_number: character varying(255) null
+      status: character varying(255) not null default 'draft'
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      is_opening_balance: boolean not null default false
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  InvoiceLine:   # table: invoice_lines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      lineable_type: character varying(255) not null
+      lineable_id: bigint not null
+      description: character varying(255) not null
+      quantity: numeric(18,4) not null
+      unit_price_cents: bigint not null
+      line_total_cents: bigint not null
+      vat_amount_cents: bigint not null
+      source_type: character varying(255) null
+      source_id: bigint null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, lineable_type, lineable_id]
+  Item:   # table: items
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      sku: character varying(255) not null unique(tenant_id, sku)
+      name: character varying(255) not null
+      category_id: bigint fk -> categories.id not null
+      type: character varying(255) not null
+      uom_id: bigint fk -> units_of_measure.id not null
+      reorder_level: numeric(15,4) not null default '0'
+      standard_cost_cents: bigint null
+      is_active: boolean not null default true
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, type]
+  JournalEntry:   # table: journal_entries
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      event_type: character varying(255) not null
+      reference_type: character varying(255) not null
+      reference_id: bigint null
+      external_reference: character varying(255) null
+      posting_date: date not null
+      original_intended_posting_date: date null
+      accounting_period_id: bigint fk -> accounting_periods.id not null
+      created_by: bigint fk -> users.id on delete set null null
+      reversal_of_journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      reversal_reason: text null
+      created_at: timestamp(0) without time zone not null default CURRENT_TIMESTAMP
+    indexes:
+      - [tenant_id, event_type]
+      - [tenant_id, posting_date]
+      - [tenant_id, reference_type, reference_id]
+  JournalLine:   # table: journal_lines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      journal_entry_id: bigint fk -> journal_entries.id on delete cascade not null
+      account_id: bigint fk -> chart_of_accounts.id not null
+      analytic_account_id: bigint fk -> analytic_accounts.id on delete set null null
+      tax_code_id: bigint fk -> tax_codes.id on delete set null null
+      debit_cents: bigint not null default '0'
+      credit_cents: bigint not null default '0'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [journal_entry_id]
+      - [tenant_id, account_id]
+  LandedCost:   # table: landed_costs
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      grn_id: bigint fk -> goods_receipt_notes.id on delete cascade not null
+      cost_type: character varying(255) not null
+      amount_cents: bigint not null
+      currency_id: bigint fk -> currencies.id not null
+      exchange_rate: numeric(15,6) not null default '1'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Lead:   # table: leads
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      party_id: bigint fk -> parties.id on delete set null null
+      source: character varying(255) null
+      status: character varying(255) not null default 'open'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  LeaveRequest:   # table: leave_requests
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      employee_id: bigint fk -> employees.id not null
+      leave_type_id: bigint fk -> leave_types.id not null
+      start_date: date not null
+      end_date: date not null
+      status: character varying(255) not null default 'pending'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  LeaveType:   # table: leave_types
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      name: character varying(255) not null
+      days_entitled_per_year: integer not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Markup:   # table: markups
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      boq_id: bigint fk -> boqs.id on delete cascade not null
+      section_id: bigint fk -> boq_sections.id on delete set null null
+      name: character varying(255) not null
+      percentage: numeric(8,4) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  MeasurementSheet:   # table: measurement_sheets
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      boq_line_id: bigint fk -> boq_lines.id on delete cascade not null
+      period: character varying(255) not null
+      previous_qty: numeric(18,4) not null default '0'
+      current_qty: numeric(18,4) not null default '0'
+      cumulative_qty: numeric(18,4) not null default '0'
+      certified_qty: numeric(18,4) null
+      status: character varying(255) not null default 'draft'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Milestone:   # table: milestones
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      project_id: bigint fk -> projects.id not null
+      sequence: integer not null
+      description: character varying(255) not null
+      billing_amount_cents: bigint not null default '0'
+      billing_locked: boolean not null default false
+      status: character varying(255) not null default 'pending'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  MilestoneBoqLineAllocation:   # table: milestone_boq_line_allocations
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      milestone_id: bigint fk -> milestones.id on delete cascade not null
+      boq_line_id: bigint fk -> boq_lines.id not null unique(milestone_id, boq_line_id)
+      percentage_of_value: numeric(8,4) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  MpesaStkRequest:   # table: mpesa_stk_requests
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      party_id: bigint fk -> parties.id not null
+      invoice_id: bigint fk -> invoices.id null
+      initiated_by: bigint fk -> users.id null
+      amount_cents: bigint not null
+      phone_number: character varying(255) not null
+      merchant_request_id: character varying(255) null
+      checkout_request_id: character varying(255) null unique
+      status: character varying(255) not null default 'pending'
+      result_code: character varying(255) null
+      result_desc: character varying(255) null
+      mpesa_receipt_number: character varying(255) null
+      payment_id: bigint fk -> payments.id null
+      raw_callback: json null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Notification:   # table: notifications
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      user_id: bigint fk -> users.id not null
+      type: character varying(255) not null
+      entity_type: character varying(255) null
+      entity_id: bigint null
+      message: text not null
+      channel: character varying(255) not null
+      delivery_mode: character varying(255) not null default 'immediate'
+      sent_at: timestamp(0) without time zone null
+      read_at: timestamp(0) without time zone null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, user_id, sent_at]
+  OpeningBalanceBatch:   # table: opening_balance_batches
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      as_of_date: date not null
+      status: character varying(255) not null default 'draft'
+      posted_by: bigint fk -> users.id on delete set null null
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  P10:   # table: p10s
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      month: smallint not null
+      year: smallint not null unique(tenant_id, month, year)
+      employee_count: integer not null
+      total_gross_pay_cents: bigint not null
+      total_paye_cents: bigint not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  P9A:   # table: p9as
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      employee_id: bigint fk -> employees.id not null
+      year: smallint not null unique(employee_id, year)
+      taxable_pay_cents: bigint not null
+      total_paye_cents: bigint not null
+      personal_relief_applied_cents: bigint not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Party:   # table: parties
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      name: character varying(255) not null
+      type: character varying(255) not null
+      credit_limit_cents: bigint not null default '0'
+      payment_terms: character varying(255) null
+      tax_residency_status: character varying(255) null
+      is_active: boolean not null default true
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, type]
+  Payment:   # table: payments
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      party_id: bigint fk -> parties.id not null
+      direction: character varying(255) not null
+      reference_type: character varying(255) null
+      reference_id: bigint null
+      settlement_exchange_rate: numeric(18,6) null
+      amount_cents: bigint not null
+      method: character varying(255) not null
+      mpesa_reference: character varying(255) null
+      mpesa_reconciliation_status: character varying(255) null
+      bank_account_id: bigint fk -> bank_accounts.id on delete set null null
+      tax_code_id: bigint fk -> tax_codes.id null
+      wht_amount_cents: bigint null
+      received_at: timestamp(0) without time zone not null
+      posting_date: date not null
+      is_opening_balance: boolean not null default false
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+      is_reconciled: boolean not null default false
+      reconciled_at: timestamp(0) without time zone null
+  PaymentAllocation:   # table: payment_allocations
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      payment_id: bigint fk -> payments.id not null
+      invoice_id: bigint fk -> invoices.id null
+      amount_allocated_cents: bigint not null
+      status: character varying(255) not null default 'allocated'
+      is_opening_balance: boolean not null default false
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  PayrollRun:   # table: payroll_runs
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      period_start: date not null
+      period_end: date not null
+      status: character varying(255) not null default 'draft'
+      run_date: date null
+      approved_by: bigint fk -> users.id on delete set null null
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Payslip:   # table: payslips
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      payroll_run_id: bigint fk -> payroll_runs.id on delete cascade not null
+      employee_id: bigint fk -> employees.id not null
+      employment_contract_id: bigint fk -> employment_contracts.id not null
+      period_start: date not null
+      period_end: date not null
+      gross_pay_cents: bigint not null
+      taxable_pay_cents: bigint not null
+      days_paid_not_worked: numeric(5,2) not null default '0'
+      paye_amount_cents: bigint not null default '0'
+      personal_relief_applied_cents: bigint not null default '0'
+      nssf_amount_cents: bigint not null default '0'
+      shif_amount_cents: bigint not null default '0'
+      housing_levy_amount_cents: bigint not null default '0'
+      helb_amount_cents: bigint not null default '0'
+      other_deductions_cents: bigint not null default '0'
+      employer_nssf_amount_cents: bigint not null default '0'
+      employer_housing_levy_amount_cents: bigint not null default '0'
+      net_pay_cents: bigint not null
+      status: character varying(255) not null default 'draft'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  ProductionOrder:   # table: production_orders
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      bom_id: bigint fk -> bill_of_materials.id not null
+      sales_order_id: bigint fk -> sales_orders.id null
+      warehouse_id: bigint fk -> warehouses.id not null
+      quantity: numeric(18,4) not null
+      status: character varying(255) not null default 'draft'
+      rm_value_actual_cents: bigint null
+      fg_value_standard_cents: bigint null
+      wastage_variance_cents: bigint null
+      bom_variance_pct: numeric(8,4) null
+      bom_variance_exceeded: boolean not null default false
+      qc_status: character varying(255) not null default 'pending'
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      completed_at: timestamp(0) without time zone null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  ProgressClaim:   # table: progress_claims
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      subcontract_id: bigint fk -> subcontracts.id not null
+      period: character varying(255) not null
+      amount_claimed_cents: bigint not null
+      amount_certified_cents: bigint null
+      vat_amount_cents: bigint null
+      retention_amount_cents: bigint null
+      wht_tax_code_id: bigint fk -> tax_codes.id null
+      wht_amount_cents: bigint null
+      net_payable_cents: bigint null
+      subcontractor_invoice_number: character varying(255) null
+      subcontractor_invoice_date: date null
+      status: character varying(255) not null default 'submitted'
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+      is_opening_balance: boolean not null default false
+    indexes:
+      - [tenant_id, subcontract_id]
+  Project:   # table: projects
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      party_id: bigint fk -> parties.id not null
+      name: character varying(255) not null
+      specification_file_path: character varying(255) null
+      status: character varying(255) not null default 'initiated'
+      completed_at: date null
+      dlp_ready_to_close: boolean not null default false
+      version: integer not null default 1
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+      analytic_account_id: bigint fk -> analytic_accounts.id on delete set null null
+  PublicHoliday:   # table: public_holidays
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      date: date not null unique(tenant_id, date)
+      name: character varying(255) not null
+      is_paid: boolean not null default true
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  PurchaseOrder:   # table: purchase_orders
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      purchase_requisition_id: bigint fk -> purchase_requisitions.id on delete set null null
+      party_id: bigint fk -> parties.id not null
+      currency_id: bigint fk -> currencies.id not null
+      exchange_rate: numeric(15,6) not null default '1'
+      status: character varying(255) not null default 'requisitioned'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+      approved_by: bigint fk -> users.id on delete set null null
+      second_approved_by: bigint fk -> users.id on delete set null null
+      approved_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, status]
+  PurchaseOrderLine:   # table: purchase_order_lines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      purchase_order_id: bigint fk -> purchase_orders.id on delete cascade not null
+      purchase_requisition_line_id: bigint fk -> purchase_requisition_lines.id on delete set null null
+      item_id: bigint fk -> items.id not null
+      quantity_ordered: numeric(15,4) not null
+      unit_cost_cents: bigint not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [purchase_order_id]
+  PurchaseRequisition:   # table: purchase_requisitions
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      demand_trigger_id: bigint fk -> demand_triggers.id on delete set null null
+      status: character varying(255) not null default 'draft'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+      approved_by: bigint fk -> users.id on delete set null null
+      approved_at: timestamp(0) without time zone null
+  PurchaseRequisitionLine:   # table: purchase_requisition_lines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      purchase_requisition_id: bigint fk -> purchase_requisitions.id on delete cascade not null
+      item_id: bigint fk -> items.id not null
+      quantity_needed: numeric(15,4) not null
+      notes: text null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [purchase_requisition_id]
+  QualityCheck:   # table: quality_checks
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      checkable_type: character varying(255) not null
+      checkable_id: bigint not null
+      result: character varying(255) not null
+      evaluator_id: bigint fk -> users.id on delete set null null
+      disposition: character varying(255) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, checkable_type, checkable_id]
+  Resource:   # table: resources
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      type: character varying(255) not null
+      party_id: bigint fk -> parties.id on delete set null null
+      employee_id: bigint fk -> employees.id on delete set null null
+      skill_category: character varying(255) null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  ResourceAssignment:   # table: resource_assignments
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      resource_id: bigint fk -> resources.id not null
+      project_id: bigint fk -> projects.id on delete set null null
+      sales_order_id: bigint fk -> sales_orders.id null
+      block_start_date: date not null
+      block_end_date: date not null
+      status: character varying(255) not null default 'scheduled'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, status, block_end_date]
+      - [tenant_id, status, block_start_date]
+  RetentionAccount:   # table: retention_accounts
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      contract_type: character varying(255) not null
+      contract_id: bigint not null
+      party_id: bigint fk -> parties.id not null
+      direction: character varying(255) not null
+      invoice_id: bigint fk -> invoices.id null
+      progress_claim_id: bigint fk -> progress_claims.id null
+      amount_cents: bigint not null
+      released_amount_cents: bigint not null default '0'
+      is_opening_balance: boolean not null default false
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, contract_type, contract_id]
+  RetentionRelease:   # table: retention_releases
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      retention_account_id: bigint fk -> retention_accounts.id not null
+      stage: character varying(255) not null
+      amount_cents: bigint not null
+      released_at: timestamp(0) without time zone null
+      status: character varying(255) not null default 'pending'
+      block_reason: text null
+      early_release_reason: text null
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Role:   # table: roles
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      name: character varying(255) not null unique(tenant_id, name)
+      label: character varying(255) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  SalesOrder:   # table: sales_orders
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      document_number: character varying(255) null
+      lead_id: bigint fk -> leads.id on delete set null null
+      party_id: bigint fk -> parties.id not null
+      project_id: bigint fk -> projects.id on delete set null null
+      boq_id: bigint fk -> boqs.id on delete set null null
+      supply_path: character varying(255) not null
+      feasibility_status: character varying(255) not null default 'pending'
+      invoice_policy: character varying(255) not null
+      status: character varying(255) not null default 'draft'
+      currency_id: bigint fk -> currencies.id not null
+      exchange_rate: numeric(18,6) not null default '1'
+      subtotal_cents: bigint not null default '0'
+      tax_cents: bigint not null default '0'
+      total_cents: bigint not null default '0'
+      approved_at: timestamp(0) without time zone null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  SalesOrderLine:   # table: sales_order_lines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      sales_order_id: bigint fk -> sales_orders.id on delete cascade not null
+      item_id: bigint fk -> items.id on delete set null null
+      boq_line_id: bigint fk -> boq_lines.id on delete set null null
+      description: character varying(255) not null
+      quantity: numeric(18,4) not null
+      rate_cents: bigint not null
+      amount_cents: bigint not null
+      quantity_delivered: numeric(18,4) not null default '0'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  SalesReturn:   # table: sales_returns
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      delivery_id: bigint fk -> deliveries.id not null
+      sales_order_line_id: bigint fk -> sales_order_lines.id not null
+      item_id: bigint fk -> items.id not null
+      warehouse_id: bigint fk -> warehouses.id not null
+      quantity_returned: numeric(18,4) not null
+      reason: character varying(255) null
+      restock_status: character varying(255) not null default 'pending'
+      credit_note_id: bigint null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  StatutoryDeductionRate:   # table: statutory_deduction_rates
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      deduction_type: character varying(255) not null
+      effective_from: date not null
+      rate_bands: json not null
+      employer_rate_bands: json null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  StatutoryRemittance:   # table: statutory_remittances
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      period: date not null
+      authority: character varying(255) not null
+      amount_cents: bigint not null
+      reference_number: character varying(255) null
+      paid_at: timestamp(0) without time zone null
+      status: character varying(255) not null default 'pending'
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  StockLedger:   # table: stock_ledger
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      item_id: bigint fk -> items.id not null
+      warehouse_id: bigint fk -> warehouses.id not null
+      location_id: bigint null
+      movement_type: character varying(255) not null
+      quantity: numeric(15,4) not null
+      unit_cost_cents: bigint not null
+      reference_type: character varying(255) null
+      reference_id: bigint null
+      created_at: timestamp(0) without time zone not null default CURRENT_TIMESTAMP
+      is_opening_balance: boolean not null default false
+    indexes:
+      - [tenant_id, item_id, warehouse_id, created_at]
+  StockQuarantine:   # table: stock_quarantines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      grn_id: bigint fk -> goods_receipt_notes.id on delete set null null
+      item_id: bigint fk -> items.id not null
+      warehouse_id: bigint fk -> warehouses.id not null
+      quantity: numeric(15,4) not null
+      unit_cost_cents: bigint not null
+      qc_status: character varying(255) not null default 'pending'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  StockReservation:   # table: stock_reservations
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      item_id: bigint fk -> items.id not null
+      warehouse_id: bigint fk -> warehouses.id not null
+      reserve_type: character varying(255) not null
+      status: character varying(255) not null default 'active'
+      quantity: numeric(15,4) not null
+      reference_type: character varying(255) null
+      reference_id: bigint null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, item_id, warehouse_id, status]
+  Subcontract:   # table: subcontracts
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      party_id: bigint fk -> parties.id not null
+      project_id: bigint fk -> projects.id on delete set null null
+      boq_id: bigint fk -> boqs.id on delete set null null
+      required_document_types: json null
+      status: character varying(255) not null default 'draft'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  SupplierPayment:   # table: supplier_payments
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      party_id: bigint fk -> parties.id not null
+      reference_type: character varying(255) not null
+      reference_id: bigint not null
+      amount_cents: bigint not null
+      settlement_exchange_rate: numeric(15,6) null
+      wht_withheld_cents: bigint null
+      method: character varying(255) null
+      paid_at: timestamp(0) without time zone not null default CURRENT_TIMESTAMP
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, reference_type, reference_id]
+  SupplierPerformanceLog:   # table: supplier_performance_logs
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      party_id: bigint fk -> parties.id not null
+      po_id: bigint fk -> purchase_orders.id on delete set null null
+      event_type: character varying(255) not null
+      notes: text null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+    indexes:
+      - [tenant_id, party_id]
+  SupplierReturn:   # table: supplier_returns
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      item_id: bigint fk -> items.id not null
+      warehouse_id: bigint fk -> warehouses.id not null
+      quantity: numeric(15,4) not null
+      unit_cost_cents: bigint not null
+      already_paid: boolean not null default false
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  TaxCode:   # table: tax_codes
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      code: character varying(255) not null unique(tenant_id, code)
+      rate: numeric(6,4) not null
+      account_id: bigint fk -> chart_of_accounts.id on delete set null null
+      type: character varying(255) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Tenant:   # table: tenants
+    fields:
+      id: bigint pk not null
+      name: character varying(255) not null
+      status: character varying(255) not null default 'active'
+      plan_tier: character varying(255) null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  TenantFeatureFlag:   # table: tenant_feature_flags
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      key: character varying(255) not null unique(tenant_id, key)
+      enabled: boolean not null default false
+      changed_by: character varying(255) not null
+      reason: text not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Timesheet:   # table: timesheets
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      employee_id: bigint fk -> employees.id not null
+      date: date not null
+      hours_normal: numeric(5,2) not null default '0'
+      hours_overtime_weekday: numeric(5,2) null
+      hours_overtime_restday: numeric(5,2) null
+      project_id: bigint fk -> projects.id on delete set null null
+      approved_by: bigint fk -> users.id on delete set null null
+      status: character varying(255) not null default 'submitted'
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  UnitOfMeasure:   # table: units_of_measure
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      code: character varying(255) not null unique(tenant_id, code)
+      name: character varying(255) not null
+      base_unit_id: bigint fk -> units_of_measure.id on delete set null null
+      conversion_factor: numeric(15,6) null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  User:   # table: users
+    fields:
+      id: bigint pk not null
+      name: character varying(255) not null
+      email: character varying(255) not null unique
+      email_verified_at: timestamp(0) without time zone null
+      password: character varying(255) not null
+      remember_token: character varying(100) null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+      tenant_id: bigint fk -> tenants.id on delete cascade null
+      role_id: bigint fk -> roles.id null
+      mfa_enabled: boolean not null default false
+      mfa_secret: text null
+      employee_id: bigint null
+  UserInvitation:   # table: user_invitations
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      email: character varying(255) not null
+      role_id: bigint fk -> roles.id null
+      invited_by: bigint null
+      token: character varying(255) not null unique
+      expires_at: timestamp(0) without time zone not null
+      accepted_at: timestamp(0) without time zone null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  VariationOrder:   # table: variation_orders
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      project_id: bigint fk -> projects.id not null
+      variation_number: character varying(255) not null
+      description: character varying(255) not null
+      status: character varying(255) not null default 'draft'
+      amount_delta_cents: bigint not null default '0'
+      approved_by: bigint fk -> users.id on delete set null null
+      second_approved_by: bigint fk -> users.id on delete set null null
+      submitted_date: timestamp(0) without time zone null
+      approved_date: timestamp(0) without time zone null
+      executed_date: timestamp(0) without time zone null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  VariationOrderLine:   # table: variation_order_lines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      variation_order_id: bigint fk -> variation_orders.id on delete cascade not null
+      boq_line_id: bigint fk -> boq_lines.id on delete set null null
+      section_id: bigint fk -> boq_sections.id on delete set null null
+      variation_type: character varying(255) not null
+      quantity_delta: numeric(18,4) not null default '0'
+      rate_delta_cents: bigint not null default '0'
+      amount_delta_cents: bigint not null
+      description: character varying(255) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  VariationOrderReversal:   # table: variation_order_reversals
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      variation_order_id: bigint fk -> variation_orders.id not null
+      reason: text not null
+      reversed_by: bigint fk -> users.id on delete set null null
+      reversed_at: timestamp(0) without time zone null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  VariationOrderReversalLine:   # table: variation_order_reversal_lines
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      variation_order_reversal_id: bigint fk -> variation_order_reversals.id on delete cascade not null
+      boq_line_id: bigint fk -> boq_lines.id on delete set null null
+      section_id: bigint fk -> boq_sections.id on delete set null null
+      variation_type: character varying(255) not null
+      quantity_delta: numeric(18,4) not null default '0'
+      rate_delta_cents: bigint not null default '0'
+      amount_delta_cents: bigint not null
+      description: character varying(255) not null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  Warehouse:   # table: warehouses
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      name: character varying(255) not null
+      code: character varying(255) null
+      is_default: boolean not null default false
+      is_in_transit: boolean not null default false
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+  WriteOff:   # table: write_offs
+    fields:
+      id: bigint pk not null
+      tenant_id: bigint fk -> tenants.id on delete cascade not null
+      invoice_id: bigint fk -> invoices.id null
+      progress_claim_id: bigint fk -> progress_claims.id null
+      amount_cents: bigint not null
+      reason: text not null
+      approved_by: bigint fk -> users.id not null
+      journal_entry_id: bigint fk -> journal_entries.id on delete set null null
+      created_at: timestamp(0) without time zone null
+      updated_at: timestamp(0) without time zone null
+      milestone_id: bigint fk -> milestones.id on delete set null null
+  # ---- Planned by v1.1.0, not yet in the schema ----
+  # TenantFeatureFlag was planned here as {flag, enabled, changed_by: fk -> users.id}. TASK-100 built it
+  # (PR #21) as {key, enabled, changed_by: varchar, reason}; the generated entry above is the real one.
+  # changed_by is a free-text operator name because flags are switched from the console, where no user exists.
+  OutboxMessage:
+    fields:
+      id: uuid pk
+      tenant_id: bigint fk -> tenants.id not null
+      provider: enum(mpesa, etims, talksasa) not null
+      operation: string not null
+      idempotency_key: string not null unique(tenant_id, provider, idempotency_key)
+      payload: jsonb not null (no secrets; credentials resolved at send time)
+      status: enum(pending, sending, sent, failed, dead) not null
+      attempts: integer not null default 0
+      next_attempt_at: timestamptz null
+      last_error: text null
+      correlation_id: uuid not null
+    indexes:
+      - [status, next_attempt_at]
+      - [tenant_id, provider, status]
+    lifecycle: [create, read, update]
+  DataSubjectRequest:
+    fields:
+      id: bigint pk
+      tenant_id: bigint fk -> tenants.id not null
+      subject_type: enum(employee, party, tenant) not null
+      subject_id: bigint not null
+      kind: enum(access_export, erasure_anonymise) not null
+      status: enum(received, approved, completed, rejected) not null
+      requested_by: bigint fk -> users.id not null
+      approved_by: bigint fk -> users.id null (must differ from requested_by)
+    indexes:
+      - [tenant_id, status]
+    lifecycle: [create, read, update]
+  MfaRecoveryCode:
+    fields:
+      user_id: bigint fk -> users.id not null
+      code_hash: string not null (bcrypt; plaintext shown once)
+      used_at: timestamptz null
+    lifecycle: [create, read, update]
+state_machines:
+  PurchaseOrder:
+    states: [requisitioned, pending_approval, approved, ordered, partially_received, received, quarantined, qc_passed, qc_failed, stocked, returned, cancelled, short_closed]
+    transitions:
+      - { from: requisitioned, to: pending_approval, by: user }
+      - { from: pending_approval, to: approved, by: user }
+      - { from: approved, to: ordered, by: user }
+      - { from: ordered, to: partially_received, by: user }
+      - { from: partially_received, to: received, by: user }
+      - { from: ordered, to: received, by: user }
+      - { from: pending_approval, to: cancelled, by: user }
+      - { from: approved, to: cancelled, by: user }
+      - { from: ordered, to: cancelled, by: user }
+      - { from: partially_received, to: short_closed, by: user }
+    invalid:
+      - { from: received, to: cancelled }
+      - { from: partially_received, to: cancelled }
+      - { from: cancelled, to: ordered }
+      - { from: short_closed, to: partially_received }
+  MpesaStkRequest:
+    states: [pending_external, confirming, succeeded, failed, cancelled, expired]
+    transitions:
+      - { from: pending_external, to: confirming, by: external }
+      - { from: pending_external, to: confirming, by: system }
+      - { from: confirming, to: succeeded, by: system }
+      - { from: confirming, to: failed, by: system }
+      - { from: confirming, to: cancelled, by: system }
+      - { from: pending_external, to: expired, by: system }
+    invalid:
+      - { from: pending_external, to: succeeded }
+      - { from: succeeded, to: failed }
+      - { from: succeeded, to: confirming }
+      - { from: expired, to: succeeded }
+  Project:
+    states: [initiated, in_progress, complete, defects_liability, closed, cancelled]
+    transitions:
+      - { from: initiated, to: in_progress, by: user }
+      - { from: in_progress, to: complete, by: user }
+      - { from: complete, to: defects_liability, by: system }
+      - { from: defects_liability, to: closed, by: user }
+      - { from: initiated, to: cancelled, by: user }
+      - { from: in_progress, to: cancelled, by: user }
+      - { from: complete, to: cancelled, by: user }
+      - { from: defects_liability, to: cancelled, by: user }
+    invalid:
+      - { from: closed, to: in_progress }
+      - { from: cancelled, to: in_progress }
+      - { from: complete, to: closed }
+invariants:
+  INV-001:
+    statement: Every posted JournalEntry has sum(debit cents) = sum(credit cents), enforced by a deferred constraint trigger, not only by the service.
+    enforced_by: [SPEC-003]
+  INV-002:
+    statement: Posted JournalEntry/JournalLine rows and AuditLog rows are never updated or deleted; correction is a new reversing entry.
+    enforced_by: [SPEC-003, SPEC-004]
+  INV-003:
+    statement: For any set of postings, the tenant trial balance nets to zero for every period.
+    enforced_by: [SPEC-003, SPEC-007]
+  INV-004:
+    statement: Document numbers are gap-free and unique per tenant, entity type and Kenyan tax year.
+    enforced_by: [SPEC-003]
+    concurrency:
+      scenario: Two requests issue the next invoice number for the same tenant and year at the same instant.
+      protection: pessimistic_lock
+  INV-005:
+    statement: Active hard reservations never exceed computed available stock per item and warehouse.
+    enforced_by: [SPEC-006]
+    concurrency:
+      scenario: Two orders hard-reserve the last unit simultaneously.
+      protection: pessimistic_lock
+  INV-006:
+    statement: Open credit exposure plus a new credit invoice never exceeds the client credit limit unless an approved override exists.
+    enforced_by: [SPEC-007]
+    concurrency:
+      scenario: Two credit checks for the same client run simultaneously.
+      protection: pessimistic_lock
+  INV-007:
+    statement: A milestone is signed off at most once per cycle.
+    enforced_by: [SPEC-008]
+    concurrency:
+      scenario: Two users sign off the same milestone simultaneously.
+      protection: pessimistic_lock
+  INV-008:
+    statement: Concurrent variation-order approvals on one BOQ line serialize and both deltas apply exactly once.
+    enforced_by: [SPEC-008]
+    concurrency:
+      scenario: Two VOs touching the same BOQ line are approved simultaneously.
+      protection: pessimistic_lock
+  INV-009:
+    statement: Each approval stage records exactly one decision, and the second approver is a different user from the first.
+    enforced_by: [SPEC-010]
+    concurrency:
+      scenario: Two approvers act on the same stage simultaneously, or one user submits both stages from two sessions.
+      protection: unique_constraint
+  INV-010:
+    statement: At most one Payment exists per M-Pesa CheckoutRequestID and per M-Pesa receipt number within a tenant.
+    enforced_by: [SPEC-011]
+    concurrency:
+      scenario: Safaricom delivers the same callback twice in parallel while the reconciliation job also confirms it.
+      protection: unique_constraint
+  INV-011:
+    statement: A mutating request with a given idempotency key takes effect at most once and replays the stored response.
+    enforced_by: [SPEC-014]
+    concurrency:
+      scenario: A double-clicked submit sends the same key twice in parallel.
+      protection: unique_constraint
+  INV-012:
+    statement: A project cannot be closed against a stale DLP-eligibility evaluation.
+    enforced_by: [SPEC-008]
+    concurrency:
+      scenario: The DLP-eligibility job re-evaluates while a user confirms closure.
+      protection: optimistic_lock
+  INV-013:
+    statement: Cumulative retention withheld on a contract never exceeds retention_cap (inclusive).
+    enforced_by: [SPEC-007]
+  INV-014:
+    statement: An employee never has two overlapping employment contracts.
+    enforced_by: [SPEC-009]
+  INV-015:
+    statement: After run, approve, disburse and remit, every payroll payable nets to zero.
+    enforced_by: [SPEC-009]
+  INV-016:
+    statement: Depreciation runs at most once per asset per period and never below residual value.
+    enforced_by: [SPEC-008]
+  INV-017:
+    statement: Every tenant-scoped row read or written in a job, command or request belongs to the active TenantContext.
+    enforced_by: [SPEC-015]
+authorization:
+  POLICY-001:
+    resource: journal_entry
+    requirement: REQ-006
+    actions:
+      update: { finance: deny, admin: deny }
+      delete: { finance: deny, admin: deny }
+    notes: No HTTP surface in v1.1.0 — journal entries are posted only by LedgerPostingService from business events, and corrected only by reverse(). update/delete stay denied. Manual journal entries for Finance are a v1.2.0 backlog candidate (baselines/inventory.yaml). Payroll postings reach Finance only as aggregate lines.
+  POLICY-002:
+    resource: invoice
+    requirement: REQ-012
+    actions:
+      view: { finance: tenant_scoped, sales: tenant_scoped, project_manager: tenant_scoped, procurement: deny, warehouse: deny, admin: tenant_scoped, hr_manager: deny, site_supervisor: deny, asset_manager: deny }
+      create: { finance: tenant_scoped, sales: deny, admin: tenant_scoped, procurement: deny, warehouse: deny }
+      issue_credit_note: { finance: tenant_scoped, admin: tenant_scoped, sales: deny }
+      write_off: { finance: tenant_scoped, admin: tenant_scoped, sales: deny }
+    notes: Role mapping derived from the User Manual; TASK-113 reconciles it against the real Policy classes and raises disagreements as decisions.
+  POLICY-003:
+    resource: payment
+    requirement: REQ-020
+    actions:
+      record: { finance: tenant_scoped, admin: tenant_scoped, sales: deny }
+      initiate_stk_push: { finance: tenant_scoped, sales: deny, admin: tenant_scoped, warehouse: deny }
+    notes: The Daraja callback is unauthenticated by necessity and is governed by ADR-002, not by this policy.
+  POLICY-004:
+    resource: payslip
+    requirement: REQ-031
+    actions:
+      view: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny, sales: deny, project_manager: deny, procurement: deny, warehouse: deny, site_supervisor: deny, asset_manager: deny }
+    notes: Payslips are read through PayrollRunPolicy@view (GET /api/payroll-runs/{id} loads the runs payslips). Admin keeps tenant-scoped view (ASM-007, approved 2026-10-02) and every payslip read is audit-logged. There is no update action — payslips are immutable outputs of a PayrollRun; corrections go through a new run. Employee own_only access pending ASM-011 (no employee role exists yet).
+  POLICY-005:
+    resource: audit_log
+    requirement: REQ-022
+    actions:
+      update: { admin: deny, finance: deny }
+      delete: { admin: deny, finance: deny }
+    notes: No in-app audit-trail viewer in v1.1.0 (v1.2.0 backlog candidate, baselines/inventory.yaml); update/delete stay denied. If a viewer is built, Finance's view must exclude rows whose subject is Payslip, Employee or EmploymentContract (row filter, enforced in the query and tested by SEC-TEST-003).
+  POLICY-006:
+    resource: purchase_order
+    requirement: REQ-011
+    actions:
+      view: { procurement: tenant_scoped, finance: tenant_scoped, warehouse: tenant_scoped, project_manager: tenant_scoped, admin: tenant_scoped, sales: deny, hr_manager: deny }
+      create: { procurement: tenant_scoped, admin: tenant_scoped, warehouse: deny, sales: deny }
+      approve: { procurement: tenant_scoped, finance: deny, admin: tenant_scoped, warehouse: deny }
+    notes: Approval above threshold requires a second approver who is a different user (INV-009); holding two roles does not qualify one person twice.
+  POLICY-007:
+    resource: integration_credential
+    requirement: REQ-024
+    actions:
+      view_masked: { admin: tenant_scoped, finance: deny, sales: deny }
+      update: { admin: tenant_scoped, finance: deny }
+      view_plaintext: { admin: deny, finance: deny }
+  POLICY-008:
+    resource: party
+    requirement: REQ-008
+    actions:
+      create: { procurement: tenant_scoped, sales: tenant_scoped, finance: deny, admin: tenant_scoped, warehouse: deny }
+      delete: { admin: tenant_scoped, sales: deny, procurement: deny }
+  POLICY-009:
+    resource: employee
+    requirement: REQ-017
+    actions:
+      view: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny, project_manager: deny }
+      update: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny }
+    notes: anonymise was removed until TASK-158 builds its route; TASK-158 re-adds it as a maker-checker action (DataSubjectRequest.approved_by differs from requested_by).
+  POLICY-010:
+    resource: asset
+    requirement: REQ-016
+    actions:
+      view: { asset_manager: tenant_scoped, finance: tenant_scoped, admin: tenant_scoped, sales: deny }
+      revalue: { asset_manager: tenant_scoped, admin: tenant_scoped, finance: deny }
+      dispose: { asset_manager: tenant_scoped, admin: tenant_scoped, finance: deny }
+  POLICY-011:
+    resource: milestone
+    requirement: REQ-015
+    actions:
+      view: { project_manager: tenant_scoped, site_supervisor: tenant_scoped, finance: tenant_scoped, admin: tenant_scoped, warehouse: deny }
+      sign_off: { project_manager: tenant_scoped, site_supervisor: tenant_scoped, admin: tenant_scoped, finance: deny }
+  POLICY-012:
+    resource: approval_limit
+    requirement: REQ-018
+    actions:
+      configure: { admin: tenant_scoped, finance: deny, procurement: deny }
+  POLICY-013:
+    resource: goods_receipt_note
+    requirement: REQ-011
+    actions:
+      create: { procurement: tenant_scoped, warehouse: tenant_scoped, site_supervisor: tenant_scoped, admin: tenant_scoped, sales: deny, finance: deny }
+  POLICY-014:
+    resource: payroll_run
+    requirement: REQ-017
+    actions:
+      generate: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny }
+      approve: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny }
+      disburse: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny }
+    notes: Finance reconciles payroll through POLICY-001 aggregate journal lines only (Imara-ERP-ARCHITECTURE.md:539 (§12 Open Decisions, item 9)).
+  POLICY-015:
+    resource: user_role_assignment
+    requirement: REQ-005
+    actions:
+      remove_last_admin: { admin: deny }
+    notes: No role-assignment or deactivation route exists in v1.1.0 (roles are set only by `tenant:provision` and invitation acceptance). TASK-124 (REQ-050) builds user deactivation and role change and re-adds the assign/deactivate actions here.

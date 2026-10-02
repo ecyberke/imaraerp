@@ -1,0 +1,13 @@
+schema: forge/capabilities/v2
+application:
+  type: saas
+capabilities:
+  authentication:  { enabled: true, source: import, confidence: high }   # Sanctum bearer + TOTP MFA
+  authorization:   { enabled: true, source: import, confidence: high }   # Laravel Policies, POLICY-* matrix
+  multi_tenant:    { enabled: true, source: import, confidence: high }   # TenantScope on every model, per-tenant seeds
+  payments:        { enabled: true, source: import, confidence: high }   # M-Pesa Daraja STK Push (PR #19)
+  webhooks:        { enabled: true, source: import, confidence: high }   # Daraja STK callback; eTIMS/TalkSasa later
+  sensitive_data:  { enabled: true, source: import, confidence: high }   # payroll, national ID, KRA PIN, bank details
+  background_jobs: { enabled: true, source: import, confidence: high }   # Scheduler + database queue
+  file_uploads:    { enabled: true, source: import, confidence: high }   # BOQ xlsx/csv/pdf import, compliance documents
+  ai_features:     { enabled: false, source: human, confidence: high }

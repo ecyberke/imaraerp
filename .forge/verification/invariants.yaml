@@ -1,0 +1,123 @@
+schema: forge/verification/invariants/v2
+INV-001:
+  statement: Every posted JournalEntry has sum(debit cents) = sum(credit cents), enforced by a deferred constraint trigger,
+    not only by the service.
+  scope: JournalEntry
+  verification:
+    type: integration
+    command: php artisan test --filter=LedgerPostingServiceTest
+    test_id: TEST-007
+INV-002:
+  statement: Posted JournalEntry/JournalLine rows and AuditLog rows are never updated or deleted; correction is a new reversing
+    entry.
+  scope: JournalEntry, AuditLog
+  verification:
+    type: integration
+    command: php artisan test --filter=LedgerImmutabilityTriggerTest
+    test_id: TEST-035
+INV-003:
+  statement: For any set of postings, the tenant trial balance nets to zero for every period.
+  scope: Tenant ledger
+  verification:
+    type: property_test
+    command: php artisan test --filter=TrialBalancePropertyTest
+    test_id: TEST-051
+INV-004:
+  statement: Document numbers are gap-free and unique per tenant, entity type and Kenyan tax year.
+  scope: DocumentSequence
+  verification:
+    type: concurrency_test
+    command: php artisan test --filter=DocumentSequenceConcurrencyTest
+    test_id: TEST-030
+INV-005:
+  statement: Active hard reservations never exceed computed available stock per item and warehouse.
+  scope: SalesOrderReservation
+  verification:
+    type: concurrency_test
+    command: php artisan test --filter=InventoryConcurrencyTest
+    test_id: TEST-013
+INV-006:
+  statement: Open credit exposure plus a new credit invoice never exceeds the client credit limit unless an approved override
+    exists.
+  scope: CreditApproval
+  verification:
+    type: concurrency_test
+    command: php artisan test --filter=CreditApprovalConcurrencyTest
+    test_id: TEST-009
+INV-007:
+  statement: A milestone is signed off at most once per cycle.
+  scope: Milestone
+  verification:
+    type: concurrency_test
+    command: php artisan test --filter=MilestoneSignOffConcurrencyTest
+    test_id: TEST-020
+INV-008:
+  statement: Concurrent variation-order approvals on one BOQ line serialize and both deltas apply exactly once.
+  scope: BOQLine
+  verification:
+    type: concurrency_test
+    command: php artisan test --filter=VariationOrderApprovalConcurrencyTest
+    test_id: TEST-021
+INV-009:
+  statement: Each approval stage records exactly one decision, and the second approver is a different user from the first.
+  scope: ApprovalLimit decisions
+  verification:
+    type: concurrency_test
+    command: php artisan test --filter=ApprovalDecisionConcurrencyTest
+    test_id: TEST-031
+INV-010:
+  statement: At most one Payment exists per M-Pesa CheckoutRequestID and per M-Pesa receipt number within a tenant.
+  scope: Payment (mpesa)
+  verification:
+    type: concurrency_test
+    command: php artisan test --filter=MpesaCallbackConcurrencyTest
+    test_id: TEST-033
+INV-011:
+  statement: A mutating request with a given idempotency key takes effect at most once and replays the stored response.
+  scope: IdempotencyKey
+  verification:
+    type: concurrency_test
+    command: php artisan test --filter=IdempotencyKeyConcurrencyTest
+    test_id: TEST-034
+INV-012:
+  statement: A project cannot be closed against a stale DLP-eligibility evaluation.
+  scope: Project
+  verification:
+    type: concurrency_test
+    command: php artisan test --filter=ProjectClosureDlpConcurrencyTest
+    test_id: TEST-032
+INV-013:
+  statement: Cumulative retention withheld on a contract never exceeds retention_cap (inclusive).
+  scope: ContractRetentionTerms
+  verification:
+    type: integration
+    command: php artisan test --filter=FinanceBillingTest
+    test_id: TEST-008
+INV-014:
+  statement: An employee never has two overlapping employment contracts.
+  scope: EmploymentContract
+  verification:
+    type: integration
+    command: php artisan test --filter=HrPayrollTest
+    test_id: TEST-023
+INV-015:
+  statement: After run, approve, disburse and remit, every payroll payable nets to zero.
+  scope: PayrollRun
+  verification:
+    type: integration
+    command: php artisan test --filter=HrPayrollTest
+    test_id: TEST-023
+INV-016:
+  statement: Depreciation runs at most once per asset per period and never below residual value.
+  scope: AssetDepreciationEntry
+  verification:
+    type: integration
+    command: php artisan test --filter=FixedAssetsPlantTest
+    test_id: TEST-022
+INV-017:
+  statement: Every tenant-scoped row read or written in a job, command or request belongs to the active TenantContext.
+  scope: TenantContext
+  verification:
+    type: integration
+    command: php artisan test --filter=TenantContextJobsTest
+    test_id: TEST-037

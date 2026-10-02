@@ -1,0 +1,558 @@
+# Brownfield baseline inventory — completed from a code read by TASK-102.
+# USER-owned (.forge/baselines/); edited under TASK-102 at the owner's explicit instruction.
+# Every fact below was read from the code, the migrated schema or `php artisan route:list`
+# at source_commit; evidence is file:line. Anything affecting security, data or the domain
+# model stays for the owner to confirm (brownfield.md "Ask before assuming").
+schema: forge/baseline-inventory/draft
+source_commit: eeb528c          # main after PR #21 (M-Pesa #19 + eTIMS #20 + TASK-100)
+captured: '2026-10-02'
+confidence: code-read
+method:
+  routes: "php artisan route:list --json (259 routes)"
+  schema: "all 122 migrations run on a fresh PostgreSQL 17 database, read back from pg_catalog"
+  entities: "one per Eloquent model; App\\Models getTable() mapped 106 models to 106 tables"
+  tests: "vendor/bin/phpunit --list-tests (PHPUnit 11.5.43)"
+  policies: "Gate::forUser()->allows() per role on a seeded tenant, rolled back"
+stack:
+  backend: { language: PHP 8.2, framework: Laravel 12, auth: "Sanctum bearer-only", mfa: pragmarx/google2fa }
+  frontend: { framework: Vue 3, ui: "Vuetify via Materialize admin template (javascript-version)", routing: unplugin-vue-router, authz_ui: CASL }
+  database: PostgreSQL (required — FOR UPDATE and advisory locks)
+  queue: database driver
+  money: integer cents + bcmath (App\Support\Money)
+  style: { php: Laravel Pint, js: ESLint }
+  ci: none (.github/workflows absent; TASK-105)
+  package_lockfiles: "package-lock.json and pnpm-lock.yaml both tracked; forge detects pnpm, dimensions use npm ci"
+  forge_detection_note: "forge detect() recognises neither composer/Laravel nor Vue (reports 'unknown / typescript'); the stack is stated in CLAUDE.md's Imara section"
+branches_merged_to_main: 21
+open_prs: []
+merged_v1_1_0_chain:
+  - { pr: 18, branch: approval-notification-compliance, merged_into: main }
+  - { pr: 19, branch: mpesa-integration, merged_into: approval-notification-compliance }
+  - { pr: 20, branch: etims-integration, merged_into: mpesa-integration }
+  - { pr: 21, branch: integration-feature-flags, merged_into: main, note: "carried #19 and #20 to main with TASK-100" }
+modules: [platform, ledger-core, master-data, inventory-core, procurement, crm-sales-boq, finance-billing,
+          reports-dashboards, phase1-screens, manufacturing, labour-resourcing, projects-milestones-ui,
+          fixed-assets-plant, hr-payroll, approvals-notifications-compliance, mpesa, etims, integration-feature-flags]
+roles:   # App\Models\Role::CATALOG, app/Models/Role.php:31-41 — fixed set seeded per tenant
+  [sales, procurement, warehouse, finance, project_manager, site_supervisor, hr_manager, asset_manager, admin]
+core_services:
+  - App\Support\Money
+  - App\Models\Scopes\TenantScope (applies only when a Sanctum user is resolved; no-op in console/queue)
+  - LedgerPostingService (reverse() = only correction path)
+  - DocumentSequenceService
+  - StockAvailabilityService
+  - ApprovalLimitService (fail-closed when unconfigured)
+  - IntegrationCredentialService (per-tenant, encrypted)
+  - FeatureFlagService (TASK-100; integrations default off, toggled only by `tenant:feature-flag`)
+http_surface:
+  total_routes: 259
+  probes:
+    liveness: "GET /up — Laravel built-in, unauthenticated (bootstrap/app.php:28)"
+    readiness: "GET /api/ready — unauthenticated, DB connectivity only (routes/api.php:102-111)"
+    note: "GET /api/health is NOT a probe: it sits behind auth:sanctum and returns the caller's user/tenant id (routes/api.php:114-120)"
+  mpesa_callback: "POST /api/webhooks/mpesa/callback — unauthenticated, throttle 120/min (routes/api.php:94-95) -> MpesaWebhookController@callback"
+  unauthenticated:
+    - GET /up
+    - GET /api/ready
+    - POST /api/auth/login (throttle 30/min)
+    - POST /api/invitations/{token}/accept (throttle 30/min)
+    - POST /api/webhooks/mpesa/callback (throttle 120/min)
+    - GET /storage/{path} (Laravel local-disk serve route; config/filesystems.php:36 'serve' => true on the private disk — TASK-132 to confirm it requires a signed URL)
+    - GET /sanctum/csrf-cookie (registered by Sanctum; unused in bearer-only mode — TASK-130/138 to decide whether to disable)
+    - "GET /{any?} (SPA catch-all, web middleware)"
+  mutating_routes_by_method: { POST: 140, PUT|PATCH: 5, PATCH: 4, PUT: 2, DELETE: 5 }
+  matrix_actions_with_no_route:   # TASK-102 table; resolved by the owner in TASK-103 — all removed from the matrix
+    - journal entries (view/create/reverse) — removed; manual journal entries are a v1.2.0 backlog candidate
+    - audit log (view) — removed; an in-app audit-trail viewer is a v1.2.0 backlog candidate
+    - payment (view) — removed
+    - payslip (update) — removed; payslips are immutable PayrollRun outputs, read through GET /api/payroll-runs/{id}
+    - purchase order (cancel) — removed; TASK-180 re-adds it with the route (KI-006)
+    - employee (anonymise) — removed; TASK-158 re-adds it with the route
+    - role assignment — removed; no deactivation or role-change route exists either; TASK-124 (REQ-050) re-adds it
+  user_access_revocation: >-
+    None after invitation (TASK-103 check): no route deactivates a user, changes a role or revokes another user's
+    tokens; users has no status column; the only revocation is the caller's own other tokens on password change
+    (app/Http/Controllers/AccountController.php:42); login checks neither user nor tenant status
+    (app/Http/Controllers/Auth/LoginController.php:41-53); tokens never expire (KI-005). REQ-050 / TASK-124.
+  routes: # METHOD /uri -> action [auth, mfa, throttle]
+    - 'PATCH /api/account/password -> AccountController@changePassword [auth]'
+    - 'GET|HEAD /api/approval-limits -> ApprovalLimitController@index [auth]'
+    - 'POST /api/approval-limits -> ApprovalLimitController@store [auth, mfa]'
+    - 'PUT /api/approval-limits/{approvalLimit} -> ApprovalLimitController@update [auth, mfa]'
+    - 'POST /api/asset-assignments/{assetAssignment}/post-charge -> AssetAssignmentController@postCharge [auth, mfa]'
+    - 'POST /api/asset-assignments/{assetAssignment}/release -> AssetAssignmentController@release [auth, mfa]'
+    - 'GET|HEAD /api/asset-categories -> AssetCategoryController@index [auth]'
+    - 'POST /api/asset-categories -> AssetCategoryController@store [auth, mfa]'
+    - 'GET|HEAD /api/assets -> AssetController@index [auth]'
+    - 'POST /api/assets -> AssetController@store [auth, mfa]'
+    - 'GET|HEAD /api/assets/{asset} -> AssetController@show [auth]'
+    - 'GET|HEAD /api/assets/{asset}/assignments -> AssetAssignmentController@indexForAsset [auth]'
+    - 'POST /api/assets/{asset}/assignments -> AssetAssignmentController@store [auth, mfa]'
+    - 'POST /api/assets/{asset}/dispose -> AssetController@dispose [auth, mfa]'
+    - 'POST /api/assets/{asset}/lifespan -> AssetController@updateLifespan [auth, mfa]'
+    - 'POST /api/assets/{asset}/revalue -> AssetController@revalue [auth, mfa]'
+    - 'POST /api/assets/{asset}/status -> AssetController@updateStatus [auth, mfa]'
+    - 'POST /api/auth/login -> LoginController@login [throttle:30,1]'
+    - 'GET|HEAD /api/bank-accounts -> BankAccountController@index [auth]'
+    - 'POST /api/bank-accounts -> BankAccountController@store [auth, mfa]'
+    - 'GET|HEAD /api/bank-accounts/{bankAccount}/reconciliation-summary -> BankAccountController@reconciliationSummary [auth]'
+    - 'GET|HEAD /api/bill-of-materials -> BillOfMaterialController@index [auth]'
+    - 'POST /api/bill-of-materials -> BillOfMaterialController@store [auth, mfa]'
+    - 'DELETE /api/bill-of-materials/{bill_of_material} -> BillOfMaterialController@destroy [auth, mfa]'
+    - 'GET|HEAD /api/bill-of-materials/{bill_of_material} -> BillOfMaterialController@show [auth]'
+    - 'PUT|PATCH /api/bill-of-materials/{bill_of_material} -> BillOfMaterialController@update [auth, mfa]'
+    - 'GET|HEAD /api/boq-import-stagings -> BoqImportStagingController@index [auth]'
+    - 'POST /api/boq-import-stagings -> BoqImportStagingController@store [auth, mfa]'
+    - 'POST /api/boq-import-stagings/{boqImportStaging}/confirm -> BoqImportStagingController@confirm [auth, mfa]'
+    - 'PATCH /api/boq-import-stagings/{boqImportStaging}/map -> BoqImportStagingController@map [auth, mfa]'
+    - 'POST /api/boq-import-stagings/{boqImportStaging}/reject -> BoqImportStagingController@reject [auth, mfa]'
+    - 'GET|HEAD /api/boq-lines/{boqLine}/measurement-sheets -> MeasurementSheetController@indexForLine [auth]'
+    - 'POST /api/boq-lines/{boqLine}/measurement-sheets -> MeasurementSheetController@store [auth, mfa]'
+    - 'GET|HEAD /api/boqs -> BoqController@index [auth]'
+    - 'POST /api/boqs -> BoqController@store [auth, mfa]'
+    - 'GET|HEAD /api/boqs/{boq} -> BoqController@show [auth]'
+    - 'POST /api/capital-movements -> CapitalMovementController@store [auth, mfa]'
+    - 'GET|HEAD /api/categories -> CategoryController@index [auth]'
+    - 'POST /api/categories -> CategoryController@store [auth, mfa]'
+    - 'DELETE /api/categories/{category} -> CategoryController@destroy [auth, mfa]'
+    - 'GET|HEAD /api/categories/{category} -> CategoryController@show [auth]'
+    - 'PUT|PATCH /api/categories/{category} -> CategoryController@update [auth, mfa]'
+    - 'GET|HEAD /api/chart-of-accounts -> ChartOfAccountController@index [auth]'
+    - 'POST /api/contract-retention-terms -> ContractRetentionTermsController@store [auth, mfa]'
+    - 'POST /api/credit-approvals -> CreditApprovalController@store [auth, mfa]'
+    - 'POST /api/credit-approvals/{creditApproval}/override -> CreditApprovalController@override [auth, mfa]'
+    - 'POST /api/credit-notes -> CreditNoteController@store [auth, mfa]'
+    - 'GET|HEAD /api/currencies -> CurrencyController@index [auth]'
+    - 'GET|HEAD /api/dashboards/crm-sales -> DashboardController@crmSales [auth]'
+    - 'GET|HEAD /api/dashboards/finance -> DashboardController@finance [auth]'
+    - 'GET|HEAD /api/dashboards/inventory -> DashboardController@inventory [auth]'
+    - 'GET|HEAD /api/dashboards/master -> DashboardController@master [auth]'
+    - 'GET|HEAD /api/dashboards/procurement -> DashboardController@procurement [auth]'
+    - 'POST /api/debit-notes -> DebitNoteController@store [auth, mfa]'
+    - 'GET|HEAD /api/defects/{defect} -> DefectController@show [auth]'
+    - 'POST /api/defects/{defect}/advance -> DefectController@advance [auth, mfa]'
+    - 'POST /api/defects/{defect}/blocks-retention -> DefectController@setBlocksRetention [auth, mfa]'
+    - 'GET|HEAD /api/deliveries/{delivery} -> DeliveryController@show [auth]'
+    - 'POST /api/deliveries/{delivery}/lines -> DeliveryController@addLine [auth, mfa]'
+    - 'POST /api/deliveries/{delivery}/mark-delivered -> DeliveryController@markDelivered [auth, mfa]'
+    - 'POST /api/deliveries/{delivery}/sales-returns -> SalesReturnController@store [auth, mfa]'
+    - 'GET|HEAD /api/demand-triggers -> DemandTriggerController@index [auth]'
+    - 'POST /api/demand-triggers/check -> DemandTriggerController@check [auth, mfa]'
+    - 'POST /api/dummy-records -> DummyRecordController@store [auth, mfa]'
+    - 'GET|HEAD /api/dummy-records/{dummyRecord} -> DummyRecordController@show [auth]'
+    - 'GET|HEAD /api/employees -> EmployeeController@index [auth]'
+    - 'POST /api/employees -> EmployeeController@store [auth, mfa]'
+    - 'GET|HEAD /api/employees/{employee} -> EmployeeController@show [auth]'
+    - 'GET|HEAD /api/employees/{employee}/employment-contracts -> EmploymentContractController@indexForEmployee [auth]'
+    - 'POST /api/employees/{employee}/employment-contracts -> EmploymentContractController@store [auth, mfa]'
+    - 'GET|HEAD /api/employees/{employee}/leave-requests -> LeaveRequestController@indexForEmployee [auth]'
+    - 'POST /api/employees/{employee}/leave-requests -> LeaveRequestController@store [auth, mfa]'
+    - 'GET|HEAD /api/employees/{employee}/p9a -> TaxComplianceReportController@p9a [auth]'
+    - 'POST /api/employees/{employee}/status -> EmployeeController@updateStatus [auth, mfa]'
+    - 'GET|HEAD /api/employees/{employee}/timesheets -> TimesheetController@indexForEmployee [auth]'
+    - 'POST /api/employees/{employee}/timesheets -> TimesheetController@store [auth, mfa]'
+    - 'POST /api/employment-contracts/{employmentContract}/promote -> EmploymentContractController@promote [auth, mfa]'
+    - 'GET|HEAD /api/equipment-hire-contracts -> EquipmentHireContractController@index [auth]'
+    - 'POST /api/equipment-hire-contracts -> EquipmentHireContractController@store [auth, mfa]'
+    - 'POST /api/equipment-hire-contracts/{equipmentHireContract}/invoiced-days -> EquipmentHireContractController@recordInvoicedDays [auth, mfa]'
+    - 'POST /api/etims/initialize-device -> EtimsController@initializeDevice [auth, mfa]'
+    - 'GET|HEAD /api/etims/item-classifications -> EtimsController@listItemClassifications [auth]'
+    - 'POST /api/etims/sync-item-classifications -> EtimsController@syncItemClassifications [auth, mfa]'
+    - 'GET|HEAD /api/goods-receipt-notes/{goodsReceiptNote} -> GoodsReceiptNoteController@show [auth]'
+    - 'POST /api/goods-receipt-notes/{goodsReceiptNote}/landed-costs -> LandedCostController@store [auth, mfa]'
+    - 'POST /api/goods-receipt-notes/{goodsReceiptNote}/lines -> GoodsReceiptNoteController@receiveLine [auth, mfa]'
+    - 'POST /api/grn-lines/{grnLine}/quality-checks -> GoodsReceiptNoteController@recordQualityCheck [auth, mfa]'
+    - 'GET|HEAD /api/health -> Closure [auth]'
+    - 'GET|HEAD /api/integration-credentials -> IntegrationCredentialController@index [auth]'
+    - 'PUT /api/integration-credentials/{provider} -> IntegrationCredentialController@update [auth, mfa]'
+    - 'POST /api/invitations/{token}/accept -> InvitationController@accept [throttle:30,1]'
+    - 'GET|HEAD /api/invoices -> InvoiceController@index [auth]'
+    - 'POST /api/invoices -> InvoiceController@store [auth, mfa]'
+    - 'GET|HEAD /api/invoices/{invoice} -> InvoiceController@show [auth]'
+    - 'POST /api/invoices/{invoice}/raise -> InvoiceController@raise [auth, mfa]'
+    - 'GET|HEAD /api/items -> ItemController@index [auth]'
+    - 'POST /api/items -> ItemController@store [auth, mfa]'
+    - 'DELETE /api/items/{item} -> ItemController@destroy [auth, mfa]'
+    - 'GET|HEAD /api/items/{item} -> ItemController@show [auth]'
+    - 'PUT|PATCH /api/items/{item} -> ItemController@update [auth, mfa]'
+    - 'GET|HEAD /api/leads -> LeadController@index [auth]'
+    - 'POST /api/leads -> LeadController@store [auth, mfa]'
+    - 'GET|HEAD /api/leads/{lead} -> LeadController@show [auth]'
+    - 'POST /api/leave-requests/{leaveRequest}/approve -> LeaveRequestController@approve [auth, mfa]'
+    - 'POST /api/leave-requests/{leaveRequest}/reject -> LeaveRequestController@reject [auth, mfa]'
+    - 'GET|HEAD /api/leave-types -> LeaveTypeController@index [auth]'
+    - 'POST /api/leave-types -> LeaveTypeController@store [auth, mfa]'
+    - 'POST /api/measurement-sheets/{measurementSheet}/certify -> MeasurementSheetController@certify [auth, mfa]'
+    - 'POST /api/mfa/confirm -> MfaController@confirm [auth]'
+    - 'POST /api/mfa/setup -> MfaController@setup [auth]'
+    - 'GET|HEAD /api/milestones/{milestone} -> MilestoneController@show [auth]'
+    - 'POST /api/milestones/{milestone}/allocate-line -> MilestoneController@allocateLine [auth, mfa]'
+    - 'POST /api/milestones/{milestone}/allocate-section -> MilestoneController@allocateSection [auth, mfa]'
+    - 'POST /api/milestones/{milestone}/close -> MilestoneController@close [auth, mfa]'
+    - 'POST /api/milestones/{milestone}/mark-invoiced -> MilestoneController@markInvoiced [auth, mfa]'
+    - 'POST /api/milestones/{milestone}/mark-utilized -> MilestoneController@markUtilized [auth, mfa]'
+    - 'POST /api/milestones/{milestone}/require-rework -> MilestoneController@requireRework [auth, mfa]'
+    - 'POST /api/milestones/{milestone}/sign-off -> MilestoneController@signOff [auth, mfa]'
+    - 'GET|HEAD /api/mpesa/stk-requests -> MpesaStkRequestController@index [auth]'
+    - 'POST /api/mpesa/stk-requests -> MpesaStkRequestController@store [auth, mfa]'
+    - 'GET|HEAD /api/mpesa/stk-requests/{mpesaStkRequest} -> MpesaStkRequestController@show [auth]'
+    - 'GET|HEAD /api/notifications -> NotificationController@index [auth]'
+    - 'POST /api/notifications/{notification}/mark-read -> NotificationController@markRead [auth]'
+    - 'POST /api/opening-balance-batches -> OpeningBalanceBatchController@store [auth, mfa]'
+    - 'POST /api/opening-balance-batches/{openingBalanceBatch}/document-sequence -> OpeningBalanceBatchController@initializeDocumentSequence [auth, mfa]'
+    - 'POST /api/opening-balance-batches/{openingBalanceBatch}/invoices -> OpeningBalanceBatchController@addInvoice [auth, mfa]'
+    - 'POST /api/opening-balance-batches/{openingBalanceBatch}/payment-allocations -> OpeningBalanceBatchController@addPaymentAllocation [auth, mfa]'
+    - 'POST /api/opening-balance-batches/{openingBalanceBatch}/payments -> OpeningBalanceBatchController@addPayment [auth, mfa]'
+    - 'POST /api/opening-balance-batches/{openingBalanceBatch}/post -> OpeningBalanceBatchController@post [auth, mfa]'
+    - 'POST /api/opening-balance-batches/{openingBalanceBatch}/stock -> OpeningBalanceBatchController@addStock [auth, mfa]'
+    - 'GET|HEAD /api/p10 -> TaxComplianceReportController@p10 [auth]'
+    - 'GET|HEAD /api/parties -> PartyController@index [auth]'
+    - 'POST /api/parties -> PartyController@store [auth, mfa]'
+    - 'DELETE /api/parties/{party} -> PartyController@destroy [auth, mfa]'
+    - 'GET|HEAD /api/parties/{party} -> PartyController@show [auth]'
+    - 'PUT|PATCH /api/parties/{party} -> PartyController@update [auth, mfa]'
+    - 'GET|HEAD /api/parties/{party}/compliance-documents -> ComplianceDocumentController@indexForParty [auth]'
+    - 'POST /api/parties/{party}/compliance-documents -> ComplianceDocumentController@store [auth, mfa]'
+    - 'POST /api/payment-allocations/{paymentAllocation}/refund -> PaymentController@refundAdvance [auth, mfa]'
+    - 'POST /api/payments -> PaymentController@store [auth, mfa]'
+    - 'POST /api/payments/{payment}/reconcile -> BankAccountController@markPaymentReconciled [auth, mfa]'
+    - 'POST /api/payments/{payment}/unreconcile -> BankAccountController@unmarkPaymentReconciled [auth, mfa]'
+    - 'GET|HEAD /api/payroll-runs -> PayrollRunController@index [auth]'
+    - 'POST /api/payroll-runs -> PayrollRunController@store [auth, mfa]'
+    - 'GET|HEAD /api/payroll-runs/{payrollRun} -> PayrollRunController@show [auth]'
+    - 'POST /api/payroll-runs/{payrollRun}/approve -> PayrollRunController@approve [auth, mfa]'
+    - 'POST /api/payroll-runs/{payrollRun}/disburse-net-pay -> PayrollRunController@disburseNetPay [auth, mfa]'
+    - 'POST /api/payroll-runs/{payrollRun}/generate -> PayrollRunController@generate [auth, mfa]'
+    - 'POST /api/payroll-runs/{payrollRun}/settle-employee -> PayrollRunController@settleEmployee [auth, mfa]'
+    - 'GET|HEAD /api/production-orders -> ProductionOrderController@index [auth]'
+    - 'POST /api/production-orders -> ProductionOrderController@store [auth, mfa]'
+    - 'GET|HEAD /api/production-orders/{productionOrder} -> ProductionOrderController@show [auth]'
+    - 'POST /api/production-orders/{productionOrder}/complete -> ProductionOrderController@complete [auth, mfa]'
+    - 'POST /api/production-orders/{productionOrder}/quality-checks -> ProductionOrderController@recordQualityCheck [auth, mfa]'
+    - 'GET|HEAD /api/progress-claims/{progressClaim} -> ProgressClaimController@show [auth]'
+    - 'POST /api/progress-claims/{progressClaim}/certify -> ProgressClaimController@certify [auth, mfa]'
+    - 'POST /api/progress-claims/{progressClaim}/reverse -> ProgressClaimController@reverse [auth, mfa]'
+    - 'GET|HEAD /api/projects -> ProjectController@index [auth]'
+    - 'POST /api/projects -> ProjectController@store [auth, mfa]'
+    - 'GET|HEAD /api/projects/{project} -> ProjectController@show [auth]'
+    - 'POST /api/projects/{project}/cancel -> ProjectController@cancel [auth, mfa]'
+    - 'POST /api/projects/{project}/close -> ProjectController@close [auth, mfa]'
+    - 'GET|HEAD /api/projects/{project}/completion-percentage -> ProjectController@completionPercentage [auth]'
+    - 'GET|HEAD /api/projects/{project}/defects -> DefectController@indexForProject [auth]'
+    - 'POST /api/projects/{project}/defects -> DefectController@store [auth, mfa]'
+    - 'POST /api/projects/{project}/mark-complete -> ProjectController@markComplete [auth, mfa]'
+    - 'GET|HEAD /api/projects/{project}/milestones -> MilestoneController@indexForProject [auth]'
+    - 'POST /api/projects/{project}/milestones -> MilestoneController@store [auth, mfa]'
+    - 'POST /api/projects/{project}/start -> ProjectController@start [auth, mfa]'
+    - 'GET|HEAD /api/projects/{project}/variation-orders -> VariationOrderController@indexForProject [auth]'
+    - 'POST /api/projects/{project}/variation-orders -> VariationOrderController@store [auth, mfa]'
+    - 'GET|HEAD /api/public-holidays -> PublicHolidayController@index [auth]'
+    - 'POST /api/public-holidays -> PublicHolidayController@store [auth, mfa]'
+    - 'GET|HEAD /api/purchase-orders -> PurchaseOrderController@index [auth]'
+    - 'POST /api/purchase-orders -> PurchaseOrderController@store [auth, mfa]'
+    - 'GET|HEAD /api/purchase-orders/{purchaseOrder} -> PurchaseOrderController@show [auth]'
+    - 'POST /api/purchase-orders/{purchaseOrder}/approve -> PurchaseOrderController@approve [auth, mfa]'
+    - 'POST /api/purchase-orders/{purchaseOrder}/goods-receipt-notes -> GoodsReceiptNoteController@store [auth, mfa]'
+    - 'POST /api/purchase-orders/{purchaseOrder}/mark-ordered -> PurchaseOrderController@markOrdered [auth, mfa]'
+    - 'POST /api/purchase-orders/{purchaseOrder}/reject -> PurchaseOrderController@reject [auth, mfa]'
+    - 'POST /api/purchase-orders/{purchaseOrder}/submit-for-approval -> PurchaseOrderController@submitForApproval [auth, mfa]'
+    - 'GET|HEAD /api/purchase-requisitions -> PurchaseRequisitionController@index [auth]'
+    - 'POST /api/purchase-requisitions -> PurchaseRequisitionController@store [auth, mfa]'
+    - 'GET|HEAD /api/purchase-requisitions/{purchaseRequisition} -> PurchaseRequisitionController@show [auth]'
+    - 'PATCH /api/purchase-requisitions/{purchaseRequisition}/approve -> PurchaseRequisitionController@approve [auth, mfa]'
+    - 'PATCH /api/purchase-requisitions/{purchaseRequisition}/reject -> PurchaseRequisitionController@reject [auth, mfa]'
+    - 'GET|HEAD /api/ready -> Closure'
+    - 'GET|HEAD /api/reports/ap-aging -> ReportController@apAging [auth]'
+    - 'GET|HEAD /api/reports/ar-aging -> ReportController@arAging [auth]'
+    - 'GET|HEAD /api/reports/balance-sheet -> ReportController@balanceSheet [auth]'
+    - 'GET|HEAD /api/reports/cash-flow-statement -> ReportController@cashFlowStatement [auth]'
+    - 'GET|HEAD /api/reports/depreciation-schedule -> ReportController@depreciationSchedule [auth]'
+    - 'GET|HEAD /api/reports/fixed-asset-register -> ReportController@fixedAssetRegister [auth]'
+    - 'GET|HEAD /api/reports/general-ledger-detail -> ReportController@generalLedgerDetail [auth]'
+    - 'GET|HEAD /api/reports/general-ledger-summary -> ReportController@generalLedgerSummary [auth]'
+    - 'GET|HEAD /api/reports/income-statement -> ReportController@incomeStatement [auth]'
+    - 'GET|HEAD /api/reports/party-ledger -> ReportController@partyLedger [auth]'
+    - 'GET|HEAD /api/reports/project-pnl -> ReportController@projectPnl [auth]'
+    - 'GET|HEAD /api/reports/trial-balance -> ReportController@trialBalance [auth]'
+    - 'GET|HEAD /api/resource-assignments -> ResourceAssignmentController@index [auth]'
+    - 'POST /api/resource-assignments/{resourceAssignment}/cancel -> ResourceAssignmentController@cancel [auth, mfa]'
+    - 'POST /api/resource-assignments/{resourceAssignment}/end-early -> ResourceAssignmentController@endEarly [auth, mfa]'
+    - 'POST /api/resource-assignments/{resourceAssignment}/extend -> ResourceAssignmentController@extend [auth, mfa]'
+    - 'GET|HEAD /api/resources -> ResourceController@index [auth]'
+    - 'POST /api/resources -> ResourceController@store [auth, mfa]'
+    - 'GET|HEAD /api/resources/{resource} -> ResourceController@show [auth]'
+    - 'POST /api/resources/{resource}/resource-assignments -> ResourceAssignmentController@store [auth, mfa]'
+    - 'POST /api/retention-releases -> RetentionReleaseController@store [auth, mfa]'
+    - 'POST /api/retention-releases/{retentionRelease}/mark-ready -> RetentionReleaseController@markReady [auth, mfa]'
+    - 'POST /api/retention-releases/{retentionRelease}/release -> RetentionReleaseController@release [auth, mfa]'
+    - 'GET|HEAD /api/roles -> RoleController@index [auth]'
+    - 'GET|HEAD /api/sales-orders -> SalesOrderController@index [auth]'
+    - 'POST /api/sales-orders -> SalesOrderController@store [auth, mfa]'
+    - 'GET|HEAD /api/sales-orders/{salesOrder} -> SalesOrderController@show [auth]'
+    - 'GET|HEAD /api/sales-orders/{salesOrder}/deliveries -> DeliveryController@indexForSalesOrder [auth]'
+    - 'POST /api/sales-orders/{salesOrder}/deliveries -> DeliveryController@store [auth, mfa]'
+    - 'POST /api/sales-orders/{salesOrder}/feasibility-assessments -> SalesOrderController@assessFeasibility [auth, mfa]'
+    - 'POST /api/sales-orders/{salesOrder}/reserve-stock -> SalesOrderController@reserveStock [auth, mfa]'
+    - 'POST /api/sales-orders/{salesOrder}/resubmit -> SalesOrderController@resubmit [auth, mfa]'
+    - 'POST /api/sales-orders/{salesOrder}/submit-for-feasibility -> SalesOrderController@submitForFeasibility [auth, mfa]'
+    - 'GET|HEAD /api/statutory-remittances -> StatutoryRemittanceController@index [auth]'
+    - 'POST /api/statutory-remittances -> StatutoryRemittanceController@store [auth, mfa]'
+    - 'POST /api/statutory-remittances/{statutoryRemittance}/pay -> StatutoryRemittanceController@pay [auth, mfa]'
+    - 'GET|HEAD /api/stock/availability -> StockAvailabilityController@show [auth]'
+    - 'POST /api/stock/quality-checks -> StockReceivingController@storeQualityCheck [auth, mfa]'
+    - 'POST /api/stock/quarantine -> StockReceivingController@storeQuarantine [auth, mfa]'
+    - 'GET|HEAD /api/stock/quarantine/{stockQuarantine} -> StockReceivingController@showQuarantine [auth]'
+    - 'POST /api/stock/reservations -> StockReservationController@store [auth, mfa]'
+    - 'GET|HEAD /api/stock/reservations/{stockReservation} -> StockReservationController@show [auth]'
+    - 'GET|HEAD /api/subcontracts -> SubcontractController@index [auth]'
+    - 'POST /api/subcontracts -> SubcontractController@store [auth, mfa]'
+    - 'GET|HEAD /api/subcontracts/{subcontract} -> SubcontractController@show [auth]'
+    - 'POST /api/subcontracts/{subcontract}/progress-claims -> ProgressClaimController@store [auth, mfa]'
+    - 'POST /api/supplier-payments -> SupplierPaymentController@store [auth, mfa]'
+    - 'POST /api/supplier-payments/fx-settlement -> SupplierPaymentController@storeFxSettlement [auth, mfa]'
+    - 'POST /api/supplier-returns -> SupplierReturnController@store [auth, mfa]'
+    - 'POST /api/timesheets/{timesheet}/approve -> TimesheetController@approve [auth, mfa]'
+    - 'POST /api/timesheets/{timesheet}/reject -> TimesheetController@reject [auth, mfa]'
+    - 'GET|HEAD /api/units-of-measure -> UnitOfMeasureController@index [auth]'
+    - 'POST /api/units-of-measure -> UnitOfMeasureController@store [auth, mfa]'
+    - 'DELETE /api/units-of-measure/{units_of_measure} -> UnitOfMeasureController@destroy [auth, mfa]'
+    - 'GET|HEAD /api/units-of-measure/{units_of_measure} -> UnitOfMeasureController@show [auth]'
+    - 'PUT|PATCH /api/units-of-measure/{units_of_measure} -> UnitOfMeasureController@update [auth, mfa]'
+    - 'GET|HEAD /api/variation-orders/{variationOrder} -> VariationOrderController@show [auth]'
+    - 'POST /api/variation-orders/{variationOrder}/approve -> VariationOrderController@approve [auth, mfa]'
+    - 'POST /api/variation-orders/{variationOrder}/execute -> VariationOrderController@execute [auth, mfa]'
+    - 'POST /api/variation-orders/{variationOrder}/lines -> VariationOrderController@addLine [auth, mfa]'
+    - 'POST /api/variation-orders/{variationOrder}/reject -> VariationOrderController@reject [auth, mfa]'
+    - 'POST /api/variation-orders/{variationOrder}/reverse -> VariationOrderController@reverse [auth, mfa]'
+    - 'POST /api/variation-orders/{variationOrder}/submit -> VariationOrderController@submit [auth, mfa]'
+    - 'GET|HEAD /api/warehouses -> WarehouseController@index [auth]'
+    - 'POST /api/warehouses -> WarehouseController@store [auth, mfa]'
+    - 'GET|HEAD /api/warehouses/{warehouse} -> WarehouseController@show [auth]'
+    - 'POST /api/webhooks/mpesa/callback -> MpesaWebhookController@callback [throttle:120,1]'
+    - 'POST /api/write-offs -> WriteOffController@store [auth, mfa]'
+    - 'GET|HEAD /sanctum/csrf-cookie -> CsrfCookieController@show'
+    - 'GET|HEAD /storage/{path} -> Closure'
+    - 'GET|HEAD /up -> Closure'
+    - 'GET|HEAD /{any?} -> Closure'
+schema_surface:
+  migrations: 122
+  tables: 115
+  domain_entities: 106          # one per Eloquent model, recorded in domain.yaml `entities`
+  infrastructure_tables_without_model: [cache, cache_locks, failed_jobs, job_batches, jobs, migrations, password_reset_tokens, personal_access_tokens, sessions]
+  foreign_keys: 301
+  unique_constraints: 27
+  non_unique_indexes: 31
+  check_constraints: 0           # status/enum values are enforced in application code only
+  timestamp_type: "timestamp(0) without time zone everywhere; no timestamptz, no uuid columns"
+  numeric_columns: "48, all quantities, rates, percentages, hours or meter readings — none holds money (money columns are bigint *_cents)"
+  unconstrained_id_columns:
+    polymorphic_by_design: [audit_logs.entity_id, boqs.boqable_id, contract_retention_terms.contract_id, demand_triggers.source_id,
+                            invoice_lines.lineable_id, invoice_lines.source_id, journal_entries.reference_id, notifications.entity_id,
+                            payments.reference_id, quality_checks.checkable_id, retention_accounts.contract_id, stock_ledger.reference_id,
+                            stock_reservations.reference_id, supplier_payments.reference_id]
+    deliberate_no_location_entity: [assets.location_id, stock_ledger.location_id]   # WMS backlog §14 (create_assets_table.php:17-19, create_stock_ledger_table.php:23)
+    forward_reference_never_closed: [sales_returns.credit_note_id, users.employee_id]   # KI-012
+  table_purpose_questions:
+    - table: dummy_records
+      read: "Exists only for platform-foundation's HTTP cross-tenant isolation test; its migration says 'Not an ERP entity ... safe to drop once a real tenant-scoped entity exists' (2026_09_12_000005_create_dummy_records_table.php:4-11)."
+      question: "Keep it as a test fixture, or drop it once SEC-TEST-002 (TASK-122) covers isolation on real resources? Dropping is destructive — owner decides."
+      decision: "Owner (TASK-103, 2026-10-02): TASK-122 moves the isolation test to real resources, then drops the table."
+scheduled_jobs:
+  jobs:   # routes/console.php
+    - { command: invitations:prune-expired, schedule: daily, line: 14 }
+    - { command: resource-assignments:advance-status, schedule: daily, line: 20 }
+    - { command: projects:evaluate-dlp-eligibility, schedule: daily, line: 25 }
+    - { command: assets:run-monthly-depreciation, schedule: monthly, line: 30 }
+    - { command: notifications:dispatch-digests, schedule: daily, line: 36 }
+  not_scheduled: "the draft listed 'reorder checks'; no scheduled reorder command exists — demand triggers are raised in-request (DemandTriggerService)"
+  all_use_withoutOverlapping: true
+  onOneServer: false   # TASK-153
+integrations:
+  safaricom-daraja: "built (#19); never called against the sandbox; behind mpesa.enabled, default off"
+  kra-etims-oscu: "built (#20) against a guessed response shape; behind etims.enabled, default off"
+  talksasa-sms: "not built — named only in a comment (app/Http/Middleware/EnsureIdempotent.php:13); no client, config or credentials provider (IntegrationCredential::PROVIDERS = [mpesa, etims])"
+tests:
+  suite_files: 29
+  suite_cases: 250
+  scaffold: { files: [tests/Unit/ExampleTest.php, tests/Feature/ExampleTest.php], cases: 2, note: "excluded from the registry count; TASK-104 deletes them" }
+  registered: { files: 27, cases: 248, entries: "TEST-001..026 + TEST-046 in verification/tests.yaml" }
+  per_file:   # phpunit --list-tests at eeb528c
+    tests/Feature/Phase0FoundationTest.php: 13
+    tests/Feature/AuthTest.php: 2
+    tests/Feature/PlatformOpsTest.php: 9
+    tests/Feature/DocumentSequenceServiceTest.php: 4
+    tests/Feature/TenantProvisioningTest.php: 5
+    tests/Unit/MoneyTest.php: 8
+    tests/Feature/LedgerPostingServiceTest.php: 65
+    tests/Feature/FinanceBillingTest.php: 14
+    tests/Feature/CreditApprovalConcurrencyTest.php: 1
+    tests/Feature/ReportsAndDashboardsTest.php: 8
+    tests/Feature/MasterDataTest.php: 13
+    tests/Feature/InventoryCoreTest.php: 8
+    tests/Feature/InventoryConcurrencyTest.php: 1
+    tests/Feature/ProcurementTest.php: 8
+    tests/Feature/CrmSalesBoqTest.php: 9
+    tests/Feature/MeasurementSheetTest.php: 1
+    tests/Feature/ManufacturingTest.php: 5
+    tests/Feature/LabourResourcingTest.php: 9
+    tests/Feature/ProjectsMilestonesUiTest.php: 10
+    tests/Feature/MilestoneSignOffConcurrencyTest.php: 1
+    tests/Feature/VariationOrderApprovalConcurrencyTest.php: 1
+    tests/Feature/FixedAssetsPlantTest.php: 12
+    tests/Feature/HrPayrollTest.php: 10
+    tests/Feature/ApprovalNotificationComplianceTest.php: 9
+    tests/Feature/MpesaIntegrationTest.php: 8
+    tests/Feature/EtimsIntegrationTest.php: 7
+    tests/Feature/FeatureFlagTest.php: 7
+  draft_discrepancy: "draft recorded 243 cases / 26 files; actual before TASK-100 was 243 cases / 28 files (incl. scaffold); TASK-100 added FeatureFlagTest (+7)"
+  real_subprocess_concurrency_files: [CreditApprovalConcurrencyTest, InventoryConcurrencyTest, MilestoneSignOffConcurrencyTest, VariationOrderApprovalConcurrencyTest]
+  not_run_by_phpunit: "LedgerPostingServiceTest.php at the repo root (KI-013)"
+  known_flaky: "PlatformOpsTest::test_repeated_failed_logins_lock_the_account_out asserts the exact text 'Try again in 900 seconds' (tests/Feature/PlatformOpsTest.php:69); fails when a clock second elapses between the 5th failure and the 6th attempt (KI-016)"
+  e2e: none
+known_issues:   # recorded, not fixed silently (brownfield.md). verdict: confirmed | confirmed-broader | refuted-as-worded | resolved-in-part
+  - id: KI-001
+    issue: README.md is unmodified Vite/Vue template boilerplate; handover says not to follow it
+    verdict: confirmed
+    evidence: "README.md:1-3 — empty '# ' title, then 'This template should help get you started developing with Vue 3 in Vite.'"
+    tracked_by: TASK-104
+  - id: KI-002
+    issue: Audit observer was absent from Invoice, Payment, PO, VO, RetentionRelease until PR #18; coverage not mechanically enforced
+    verdict: confirmed-broader
+    evidence: >-
+      The five named models now carry #[ObservedBy(AuditLogObserver::class)] (Invoice.php:13, Payment.php:13,
+      PurchaseOrder.php:19, VariationOrder.php:13, RetentionRelease.php:13). Enforcement is still absent: no
+      tests/Architecture/ directory exists. A heuristic scan (model file mentions a *_cents field, no observer)
+      finds 36 more models without the observer: ApprovalLimit, AssetDepreciationEntry, Boq, BoqImportStaging,
+      BoqLine, CapitalMovement, ContractRetentionTerms, CreditApproval, CreditNote, DebitNote, DeliveryLine,
+      GRNLine, InvoiceLine, Item, JournalEntry, JournalLine, LandedCost, Milestone, MpesaStkRequest, P10, P9A,
+      Party, PaymentAllocation, ProductionOrder, ProgressClaim, PurchaseOrderLine, RetentionAccount, SalesOrder,
+      SalesOrderLine, StockLedger, StockQuarantine, SupplierPayment, SupplierReturn, VariationOrderLine,
+      VariationOrderReversalLine, WriteOff. Which of these are "money-bearing" is TASK-120's call.
+    tracked_by: TASK-120
+  - id: KI-003
+    issue: M-Pesa callback settles from the unsigned callback body; architecture §1.1 promises HMAC + nonce the provider cannot supply
+    verdict: confirmed
+    evidence: >-
+      POST /api/webhooks/mpesa/callback has no auth middleware (routes/api.php:94-95). MpesaService::handleCallback
+      (app/Services/MpesaService.php:147) reads ResultCode from the body (:170) and calls PaymentService::receive (:188)
+      without confirming with Daraja; the service's only outbound calls are OAuth (:56) and STK push (:102) — no STK Query.
+    tracked_by: TASK-133
+  - id: KI-004
+    issue: eTIMS retains raw provider responses on failure; may include the device communication key
+    verdict: confirmed-broader
+    evidence: >-
+      Retained on every outcome, not only failure: response_payload = $body is set before the success branch
+      (app/Services/EtimsService.php:117, also :173), and on success that body contains cmcKey (:115). It is
+      stored as plain json (EtimsSubmission casts response_payload to array, app/Models/EtimsSubmission.php:28,
+      no $hidden), while the same key is kept encrypted in IntegrationCredential. EtimsController returns the
+      whole submission (app/Http/Controllers/EtimsController.php:19), so the plaintext cmcKey is also sent in
+      the HTTP response to the admin who initialised the device.
+    tracked_by: [TASK-140, TASK-137]   # TASK-140 hotfix first in Phase 1; TASK-137 redaction and key rotation
+  - id: KI-005
+    issue: No Sanctum token expiry documented
+    verdict: confirmed
+    evidence: "config/sanctum.php:53 'expiration' => null — tokens never expire"
+    tracked_by: TASK-130
+  - id: KI-006
+    issue: Purchase Orders cannot be cancelled; Project.cancel() can only flag open POs
+    verdict: confirmed-broader
+    evidence: >-
+      PurchaseOrder::STATUSES has no 'cancelled' (app/Models/PurchaseOrder.php:22-26) and no cancel route exists.
+      Project.cancel() does not flag open POs either — it does not touch them at all; its docblock records PO and
+      Subcontract/ProgressClaim handling as "NOT enforced here" (app/Services/ProjectService.php:192-201, cancel() at :204).
+    tracked_by: TASK-180
+  - id: KI-007
+    issue: execution_plan.md still instructs assertEqualsWithDelta for money after the switch to integer cents
+    verdict: confirmed-broader
+    evidence: >-
+      execution_plan.md:156 instructs assertEqualsWithDelta "for every monetary comparison". One live use on money
+      remains in the suite: tests/Feature/HrPayrollTest.php:213 asserts debit_cents / 100 / 2 within 0.01 (ADR-008;
+      forge validate also warns STD-TST-005 on TEST-023).
+    tracked_by: TASK-104
+  - id: KI-008
+    issue: TenantScope filters nothing when no user is authenticated, so scheduled commands run across all tenants with no explicit tenant context
+    verdict: confirmed (reworded by TASK-103; the draft said jobs resolve the tenant through the auth guard, which is not what the code does)
+    evidence: >-
+      TenantScope applies its tenant_id filter only when a Sanctum user resolves (app/Models/Scopes/TenantScope.php:46-48);
+      no console code touches the auth guard. All five scheduled commands therefore run unscoped. TASK-103 read every
+      query they reach (there are no queued jobs, listeners or queued notifications in app/): none resolves another
+      tenant's row by code or name. The cross-tenant queries are deliberate sweeps that write in place:
+      UserInvitation expired-row delete (app/Console/Commands/PruneExpiredInvitations.php:22-25, deletes);
+      ResourceAssignment scheduled->active and active->completed (app/Services/ResourceAssignmentService.php
+      advanceScheduledTransitions, updates); Project defects_liability scan (app/Services/ProjectService.php:102, updates
+      dlp_ready_to_close and creates Notifications); Notification digest sweep (app/Services/NotificationService.php
+      dispatchDueDigests, updates sent_at). Downstream lookups pin tenant_id (LedgerPostingService.php:140-180,
+      AccountingPeriodResolver.php:46-68, DocumentSequenceService.php:51-75, NotificationService::notifyRole,
+      Defect lookup ProjectService.php DLP block) or go by globally unique id. Depreciation iterates Tenant::all()
+      and filters assets by tenant_id (RunMonthlyAssetDepreciation.php:29, DepreciationRunService.php:45). The
+      unauthenticated M-Pesa callback path also pins tenant_id (PaymentService::receive). Risk is structural, not an
+      active leak: any new job or command written without an explicit TenantContext inherits an unscoped query layer.
+    tracked_by: TASK-135
+  - id: KI-009
+    issue: Performance targets (§1.1) never measured; restore and migration rehearsal never run
+    verdict: confirmed
+    evidence: >-
+      No load, restore or rehearsal artefacts exist: tests/load/, scripts/perf/ and scripts/ops/ are absent, and no
+      tracked file matches k6/restore/rehears/pitr/backup. The performance dimension's commands reference files
+      that do not exist yet (verification/dimensions.yaml).
+    tracked_by: [TASK-173, TASK-154, TASK-155]
+  - id: KI-010
+    issue: Employee self-service payslip promised in Imara-ERP-ARCHITECTURE.md:539 (§12 Open Decisions, item 9) but no employee role exists
+    verdict: confirmed
+    evidence: >-
+      Role::CATALOG has nine roles and no employee role (app/Models/Role.php:31-41). The promise is at
+      Imara-ERP-ARCHITECTURE.md:539 (resolved question 9: "An employee's own Payslip remains visible to
+      themselves via self-service"). "§12.9" in the draft meant §12 Open Decisions, item 9 — the same place; references now cite the line.
+    tracked_by: TASK-184
+  - id: KI-011
+    issue: typed-router.d.ts is tracked but regenerated by unplugin-vue-router whenever a dev server or build runs, so a running dev server dirties the tree and will invalidate release candidates
+    verdict: confirmed
+    evidence: "seen modified on main with no source change on 2026-10-02 while a node dev server was running; discarded with git checkout"
+    decision_needed: "commit-and-regenerate (keep tracked; CI regenerates and fails on drift) vs untrack (gitignore it; generated at build time)"
+    tracked_by: TASK-104
+  - id: KI-012
+    issue: Two forward-reference columns were never given their foreign key after the referenced table landed
+    verdict: confirmed
+    evidence: >-
+      sales_returns.credit_note_id (2026_09_25_000007_create_sales_returns_table.php:15,31 — "forward reference to
+      finance-billing's CreditNote") and users.employee_id (2026_09_19_000007_add_employee_id_to_users_table.php:19)
+      are plain nullable bigints; credit_notes and employees now exist. resources.employee_id, the same pattern,
+      did get its FK.
+    tracked_by: TASK-139
+  - id: KI-013
+    issue: A tracked, never-run copy of the v19 LedgerPostingService reference implementation and tests sits at the repo root
+    verdict: confirmed
+    evidence: >-
+      LedgerPostingServiceTest.php (1836 lines, 59 tests, committed in 0a4fed9 project-init) differs from
+      tests/Feature/LedgerPostingServiceTest.php (893 lines, 65 tests); phpunit.xml suites cover only tests/Unit and
+      tests/Feature, so it never runs.
+    tracked_by: TASK-104
+  - id: KI-014
+    issue: The runtime dimension and the draft inventory probe /health, which does not exist unauthenticated
+    verdict: confirmed — fixed in TASK-103
+    evidence: >-
+      verification/dimensions.yaml runtime curls http://127.0.0.1:8000/health and /ready; the real probes are
+      GET /up and GET /api/ready, and /api/health requires auth:sanctum (routes/api.php:114). runtime.yaml
+      readiness_url was corrected to /api/ready under TASK-102. TASK-103 fixed the runtime dimension (curl /up and /api/ready), the architecture interface text, NFR-003, TASK-157, ADR-010's smoke trigger and both v1.1.0 docs.
+    tracked_by: [TASK-115, TASK-157]
+  - id: KI-015
+    issue: After the TASK-103 matrix decisions, six view-only grants in the matrix are not yet implemented in code, and two matrix resources still have no Policy class
+    verdict: confirmed
+    evidence: >-
+      Gate::forUser()->allows() per role (TASK-102 probe, re-checked after the TASK-103 matrix edits) denies:
+      InvoicePolicy@view for sales and project_manager (POLICY-002); PurchaseOrderPolicy@view for finance and
+      project_manager (POLICY-006); AssetPolicy@view for finance (POLICY-010); MilestonePolicy@view for finance
+      (POLICY-011). No Policy class exists for JournalEntry (POLICY-001, now update/delete deny only) or for user
+      role assignment (POLICY-015, now remove_last_admin deny only); with no route either, those deny-only actions
+      hold. Payslip view is governed by PayrollRunPolicy@view; AuditLogPolicy covers POLICY-005's deny-only actions.
+    tracked_by: TASK-113 (the six grants); TASK-124 adds the user-management policy when it re-adds POLICY-015 actions
+  - id: KI-016
+    issue: Lockout test is timing-sensitive
+    verdict: confirmed
+    evidence: "tests/Feature/PlatformOpsTest.php:69 asserts 'Try again in 900 seconds' exactly; failed once in a slow full run on 2026-10-02 and passed alone"
+    tracked_by: TASK-104
+backlog_candidates_v1_2_0:   # owner decision 2026-10-02 (TASK-103) — candidates only, not requirements
+  - title: Manual journal entries for Finance
+    from: POLICY-001 view/create/reverse removed from the v1.1.0 matrix (no route today)
+  - title: In-app audit-trail viewer
+    from: POLICY-005 view removed from the v1.1.0 matrix (AuditLogPolicy exists, no route); Finance's row filter on Payslip, Employee and EmploymentContract subjects applies if built

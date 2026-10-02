@@ -1,0 +1,817 @@
+schema: forge/tasks/v2
+TASK-001:
+  title: '[baseline] platform-foundation: Tenant, UserInvitation, TenantScope, provisioning'
+  spec: SPEC-015
+  requirement: REQ-001
+  status: done
+  self_test: php artisan test --filter=TenantProvisioningTest
+  notes: Branch platform-foundation, merged.
+TASK-002:
+  title: '[baseline] platform-foundation: Sanctum bearer auth, lockout, MFA middleware'
+  spec: SPEC-001
+  requirement: REQ-003
+  status: done
+  self_test: php artisan test --filter=Phase0FoundationTest
+  notes: Merged.
+TASK-003:
+  title: '[baseline] Policy skeleton for nine roles'
+  spec: SPEC-002
+  requirement: REQ-005
+  status: done
+  notes: Merged. Matrix coverage incomplete — TASK-113.
+TASK-004:
+  title: '[baseline] ledger-core: LedgerPostingService, CoA, TaxCode, AccountingPeriod'
+  spec: SPEC-003
+  requirement: REQ-006
+  status: done
+  self_test: php artisan test --filter=LedgerPostingServiceTest
+TASK-005:
+  title: '[baseline] master-data'
+  spec: SPEC-005
+  requirement: REQ-008
+  status: done
+  self_test: php artisan test --filter=MasterDataTest
+TASK-006:
+  title: '[baseline] inventory-core'
+  spec: SPEC-006
+  requirement: REQ-010
+  status: done
+  self_test: php artisan test --filter=InventoryCoreTest
+TASK-007:
+  title: '[baseline] procurement'
+  spec: SPEC-006
+  requirement: REQ-011
+  status: done
+  self_test: php artisan test --filter=ProcurementTest
+TASK-008:
+  title: '[baseline] crm-sales-boq'
+  spec: SPEC-005
+  requirement: REQ-009
+  status: done
+  self_test: php artisan test --filter=CrmSalesBoqTest
+TASK-009:
+  title: '[baseline] finance-billing'
+  spec: SPEC-007
+  requirement: REQ-012
+  status: done
+  self_test: php artisan test --filter=FinanceBillingTest
+TASK-010:
+  title: '[baseline] phase1-reports-dashboards'
+  spec: SPEC-007
+  requirement: REQ-019
+  status: done
+  self_test: php artisan test --filter=ReportsAndDashboardsTest
+TASK-011:
+  title: '[baseline] phase1-screens (Vue/Vuetify, Materialize mapping)'
+  spec: SPEC-005
+  requirement: REQ-009
+  status: done
+  notes: Predates .forge/design-system.md; adherence reviewed under TASK-183.
+  ui: true
+TASK-012:
+  title: '[baseline] manufacturing'
+  spec: SPEC-006
+  requirement: REQ-013
+  status: done
+  self_test: php artisan test --filter=ManufacturingTest
+TASK-013:
+  title: '[baseline] labour-resourcing'
+  spec: SPEC-008
+  requirement: REQ-014
+  status: done
+  self_test: php artisan test --filter=LabourResourcingTest
+TASK-014:
+  title: '[baseline] projects-milestones-ui'
+  spec: SPEC-008
+  requirement: REQ-015
+  status: done
+  self_test: php artisan test --filter=ProjectsMilestonesUiTest
+TASK-015:
+  title: '[baseline] fixed-assets-plant'
+  spec: SPEC-008
+  requirement: REQ-016
+  status: done
+  self_test: php artisan test --filter=FixedAssetsPlantTest
+TASK-016:
+  title: '[baseline] hr-payroll'
+  spec: SPEC-009
+  requirement: REQ-017
+  status: done
+  self_test: php artisan test --filter=HrPayrollTest
+TASK-017:
+  title: '[baseline] IdempotencyKey infrastructure'
+  spec: SPEC-014
+  requirement: REQ-023
+  status: done
+  self_test: php artisan test --filter=PlatformOpsTest
+TASK-018:
+  title: '[baseline] AuditLog observer (partial coverage)'
+  spec: SPEC-004
+  requirement: REQ-022
+  status: done
+  notes: 'Coverage retrofitted in PR #18; enforcement in TASK-120.'
+TASK-019:
+  title: '[PR #18] approval-notification-compliance — human review and merge to main'
+  spec: SPEC-010
+  requirement: REQ-018
+  status: done
+  self_test: php artisan test --filter=ApprovalNotificationComplianceTest
+  notes: 'Merge order #18 -> #19 -> #20; stacked, so no depends_on is declared between them. Merged to main as PR #18 (7701d57).'
+  paths:
+  - app/Console/Commands/DispatchNotificationDigests.php
+  - app/Http/Controllers/ApprovalLimitController.php
+  - app/Http/Controllers/BankAccountController.php
+  - app/Http/Controllers/ComplianceDocumentController.php
+  - app/Http/Controllers/CreditApprovalController.php
+  - app/Http/Controllers/NotificationController.php
+  - app/Http/Controllers/PurchaseOrderController.php
+  - app/Http/Controllers/PurchaseRequisitionController.php
+  - app/Http/Controllers/RoleController.php
+  - app/Models/ApprovalLimit.php
+  - app/Models/ComplianceDocument.php
+  - app/Models/CreditApproval.php
+  - app/Models/Invoice.php
+  - app/Models/Notification.php
+  - app/Models/Payment.php
+  - app/Models/PurchaseOrder.php
+  - app/Models/PurchaseRequisition.php
+  - app/Models/RetentionRelease.php
+  - app/Models/Tenant.php
+  - app/Models/VariationOrder.php
+  - app/Policies/ApprovalLimitPolicy.php
+  - app/Policies/ComplianceDocumentPolicy.php
+  - app/Policies/GoodsReceiptNotePolicy.php
+  - app/Policies/NotificationPolicy.php
+  - app/Services/ApprovalLimitSeeder.php
+  - app/Services/ApprovalLimitService.php
+  - app/Services/BankReconciliationService.php
+  - app/Services/ComplianceDocumentService.php
+  - app/Services/CreditApprovalService.php
+  - app/Services/DemandTriggerService.php
+  - app/Services/EquipmentHireContractService.php
+  - app/Services/NotificationService.php
+  - app/Services/ProductionOrderService.php
+  - app/Services/ProgressClaimService.php
+  - app/Services/ProjectService.php
+  - app/Services/PurchaseOrderReceivingService.php
+  - app/Services/PurchaseOrderService.php
+  - app/Services/PurchaseRequisitionService.php
+  - app/Services/RetentionReleaseService.php
+  - app/Services/TimesheetService.php
+  - app/Services/VariationOrderService.php
+  - database/migrations/2026_11_19_000001_create_approval_limits_table.php
+  - database/migrations/2026_11_19_000002_create_notifications_table.php
+  - database/migrations/2026_11_19_000003_create_compliance_documents_table.php
+  - database/migrations/2026_11_19_000004_add_approval_fields_to_purchase_requisitions_and_orders.php
+  - database/migrations/2026_11_19_000005_add_second_approved_by_to_credit_approvals_table.php
+  - database/migrations/2026_11_19_000006_add_reconciliation_fields_to_payments_table.php
+  - resources/js/@core/components/Notifications.vue
+  - resources/js/layouts/components/NavBarNotifications.vue
+  - resources/js/navigation/horizontal/approval-limits.js
+  - resources/js/navigation/horizontal/index.js
+  - resources/js/navigation/vertical/approval-limits.js
+  - resources/js/navigation/vertical/index.js
+  - resources/js/pages/approval-limits/index.vue
+  - resources/js/pages/notifications/index.vue
+  - resources/js/pages/sales-billing/bank-accounts/[id].vue
+  - resources/js/pages/sales-billing/bank-accounts/index.vue
+  - resources/js/pages/sales-billing/parties/[id].vue
+  - resources/js/pages/sales-billing/parties/index.vue
+  - resources/js/plugins/casl/roleAbilities.js
+  - routes/api.php
+  - routes/console.php
+  - tests/Feature/ApprovalNotificationComplianceTest.php
+  - tests/Feature/CreditApprovalConcurrencyTest.php
+  - tests/Feature/InventoryConcurrencyTest.php
+  - tests/Feature/MilestoneSignOffConcurrencyTest.php
+  - tests/Feature/ProcurementTest.php
+  - tests/Feature/VariationOrderApprovalConcurrencyTest.php
+TASK-020:
+  title: '[PR #19] mpesa-integration — human review and merge after #18'
+  spec: SPEC-011
+  requirement: REQ-020
+  status: done
+  self_test: php artisan test --filter=MpesaIntegrationTest
+  notes: 'Merged into approval-notification-compliance as #19 (stacked); reached main via PR #21 (eeb528c), behind mpesa.enabled default off.'
+  paths:
+  - app/Http/Controllers/IntegrationCredentialController.php
+  - app/Http/Controllers/InvoiceController.php
+  - app/Http/Controllers/MpesaStkRequestController.php
+  - app/Http/Controllers/MpesaWebhookController.php
+  - app/Models/IntegrationCredential.php
+  - app/Models/MpesaStkRequest.php
+  - app/Policies/IntegrationCredentialPolicy.php
+  - app/Policies/MpesaStkRequestPolicy.php
+  - app/Services/IntegrationCredentialService.php
+  - app/Services/MpesaService.php
+  - database/migrations/2026_12_03_000001_create_integration_credentials_table.php
+  - database/migrations/2026_12_03_000002_create_mpesa_stk_requests_table.php
+  - resources/js/navigation/horizontal/approval-limits.js
+  - resources/js/navigation/horizontal/sales-billing.js
+  - resources/js/navigation/vertical/approval-limits.js
+  - resources/js/navigation/vertical/sales-billing.js
+  - resources/js/pages/payments/mpesa/index.vue
+  - resources/js/pages/settings/integrations/index.vue
+  - routes/api.php
+  - tests/Feature/MpesaIntegrationTest.php
+TASK-021:
+  title: '[PR #20] etims-integration — merge after #19, only with TASK-100 applied'
+  spec: SPEC-013
+  requirement: REQ-021
+  status: done
+  self_test: php artisan test --filter=EtimsIntegrationTest
+  notes: 'Merged into mpesa-integration as #20 (stacked); reached main via PR #21 (eeb528c) together with TASK-100, behind etims.enabled default off.'
+  paths:
+  - app/Http/Controllers/EtimsController.php
+  - app/Models/EtimsItemClassification.php
+  - app/Models/EtimsSubmission.php
+  - app/Models/IntegrationCredential.php
+  - app/Services/EtimsService.php
+  - database/migrations/2026_12_10_000001_create_etims_submissions_table.php
+  - database/migrations/2026_12_10_000002_create_etims_item_classifications_table.php
+  - resources/js/pages/settings/integrations/index.vue
+  - routes/api.php
+  - tests/Feature/EtimsIntegrationTest.php
+TASK-022:
+  title: '[PR #19] IntegrationCredentialService (encrypted, masked)'
+  spec: SPEC-014
+  requirement: REQ-024
+  status: done
+  notes: 'Shipped in #19; reached main via PR #21 (eeb528c).'
+  paths:
+  - app/Services/IntegrationCredentialService.php
+  - app/Models/IntegrationCredential.php
+  - app/Http/Controllers/IntegrationCredentialController.php
+  - app/Policies/IntegrationCredentialPolicy.php
+  - database/migrations/2026_12_03_000001_create_integration_credentials_table.php
+TASK-100:
+  title: Per-tenant integration feature flags; eTIMS and M-Pesa default OFF
+  spec: SPEC-013
+  requirement: REQ-045
+  status: done
+  estimate: 1
+  self_test: php artisan test --filter=FeatureFlagTest
+  notes: 'Add to PR #20 before it merges (ADR-006). Merged to main in PR #21 (eeb528c) with #19 and #20, as ADR-006 requires. Flags switched only by `php artisan tenant:feature-flag`.'
+  paths:
+  - app/Console/Commands/SetTenantFeatureFlag.php
+  - app/Exceptions/IntegrationDisabledException.php
+  - app/Models/TenantFeatureFlag.php
+  - app/Services/EtimsService.php
+  - app/Services/FeatureFlagService.php
+  - app/Services/MpesaService.php
+  - bootstrap/app.php
+  - database/migrations/2026_12_17_000001_create_tenant_feature_flags_table.php
+  - tests/Feature/EtimsIntegrationTest.php
+  - tests/Feature/FeatureFlagTest.php
+  - tests/Feature/MpesaIntegrationTest.php
+TASK-102:
+  title: 'Brownfield baseline: complete .forge/baselines/inventory.yaml from a code read, populate domain.yaml entities
+    from migrations, register every suite test in verification/tests.yaml'
+  spec: SPEC-019
+  requirement: NFR-007
+  status: review
+  depends_on:
+  - TASK-019
+  - TASK-020
+  - TASK-021
+  estimate: 2
+  notes: 'Baseline from code at eeb528c: 106 entities from the migrated schema, 259 routes, 27 test files / 248 cases reconciled, KI-001..016 with evidence, runtime.yaml readiness_url -> /api/ready. Policy disagreements (29) left for TASK-113.'
+  paths:
+  - .forge/baselines/inventory.yaml
+  - .forge/domain.yaml
+  - .forge/verification/tests.yaml
+  - .forge/runtime.yaml
+TASK-103:
+  title: Approve constitution (project.yaml, risk class) and ADR-001..008
+  spec: SPEC-019
+  requirement: NFR-007
+  status: done
+  estimate: 0.5
+  notes: 'Approved by Lavyd 2026-10-02: project.yaml as drafted (risk_class R4); ADR-001..010 accepted; ASM-001, -002, -003, -007, -008, -009 confirmed (ASM-005, -010, -011 stay open); authorization matrix trimmed to v1.1.0 routes with six view-only grants left for TASK-113.'
+  paths:
+  - .forge/project.yaml
+  - .forge/assumptions.yaml
+  - .forge/decisions/
+  - .forge/domain.yaml
+  - .forge/requirements.yaml
+  - .forge/specs.yaml
+  - .forge/tasks.yaml
+  - .forge/execution-plan.yaml
+  - .forge/architecture.yaml
+  - .forge/verification/dimensions.yaml
+  - .forge/verification/tests.yaml
+  - .forge/baselines/inventory.yaml
+  - Imara-ERP-v1.1.0-ARCHITECTURE.md
+  - Imara-ERP-v1.1.0-EXECUTION-PLAN.md
+TASK-104:
+  title: Clean-room README, delete ExampleTest scaffolding, exact-cent assertion convention; run `forge scaffold`
+    (never --merge) for CLAUDE.md/AGENTS.md marker blocks plus a hand-written Imara section
+  spec: SPEC-019
+  requirement: NFR-009
+  status: todo
+  depends_on:
+  - TASK-102
+  estimate: 0.5
+  notes: '`forge scaffold --merge` overwrites .gitignore and .env.example with generic content (drops /vendor, storage/, Laravel variables). Plain `forge scaffold` skips existing files. TASK-102/103 baseline items: (KI-007) replace the delta at tests/Feature/HrPayrollTest.php:213 with an exact-cents assertion; if it then fails, stop and report — that is a payroll bug, not a test to loosen. (KI-013) Compare the root v19 LedgerPostingServiceTest.php (59 cases) with tests/Feature/LedgerPostingServiceTest.php; port any rule not covered, then delete the root file. (KI-016) Freeze time in PlatformOpsTest::test_repeated_failed_logins_lock_the_account_out. (KI-011) Decide commit-and-regenerate vs untrack for typed-router.d.ts.'
+TASK-105:
+  title: CI workflow (GitHub Actions + PostgreSQL 16 service) running every declared dimension
+  spec: SPEC-019
+  requirement: NFR-007
+  status: todo
+  depends_on:
+  - TASK-102
+  - TASK-103
+  estimate: 2
+TASK-110:
+  title: Larastan level 6 with committed baseline; ESLint as error gate
+  spec: SPEC-019
+  requirement: NFR-004
+  status: todo
+  depends_on:
+  - TASK-105
+  estimate: 2
+  self_test: vendor/bin/phpstan analyse --error-format=github
+TASK-111:
+  title: composer audit, npm audit --audit-level=high, gitleaks in the security dimension
+  spec: SPEC-019
+  requirement: NFR-004
+  status: todo
+  depends_on:
+  - TASK-105
+  estimate: 1
+TASK-112:
+  title: OpenAPI 3.1 generation (dedoc/scramble) and response contract tests
+  spec: SPEC-019
+  requirement: NFR-008
+  status: todo
+  depends_on:
+  - TASK-105
+  estimate: 3
+  self_test: php artisan test --filter=OpenApiContractTest
+TASK-113:
+  title: Authorization matrix test generated from domain.yaml POLICY-* (allow, deny, other-tenant 404, unauthenticated
+    401)
+  spec: SPEC-002
+  requirement: REQ-005
+  status: todo
+  depends_on:
+  - TASK-102
+  estimate: 4
+  self_test: php artisan test --filter=AuthorizationMatrixTest
+  notes: 'Where a Policy disagrees with the matrix, fix the Policy or raise a decision — never edit the matrix to match. Required Policy changes, view-only (owner decision 2026-10-02, TASK-103): InvoicePolicy@view allow sales and project_manager (POLICY-002); PurchaseOrderPolicy@view allow finance and project_manager (POLICY-006); AssetPolicy@view allow finance (POLICY-010); MilestonePolicy@view allow finance (POLICY-011). These six are the remaining code-vs-matrix disagreements (KI-015).'
+TASK-114:
+  title: 'Payroll confidentiality: Finance denied Payslip and salary-bearing AuditLog rows'
+  spec: SPEC-002
+  requirement: REQ-031
+  status: todo
+  depends_on:
+  - TASK-113
+  estimate: 2
+  self_test: php artisan test --filter=PayrollConfidentialityTest
+  notes: 'ASM-007 approved 2026-10-02: Admin keeps tenant-scoped payslip view through PayrollRunPolicy@view and every payslip read must be audit-logged. v1.0 does not log reads (PayrollRunController@show loads payslips without an AuditLog entry) — implement the read audit here; SEC-TEST-003 asserts it.'
+TASK-115:
+  title: Playwright harness on runtime.yaml boot contract; journeys JRN-001..007
+  spec: SPEC-019
+  requirement: NFR-007
+  status: todo
+  depends_on:
+  - TASK-105
+  estimate: 5
+  self_test: npx playwright test
+TASK-116:
+  title: Real-subprocess concurrency test for DocumentSequence
+  spec: SPEC-003
+  requirement: REQ-007
+  status: todo
+  estimate: 1
+  self_test: php artisan test --filter=DocumentSequenceConcurrencyTest
+TASK-117:
+  title: Real-subprocess concurrency test for simultaneous approval decisions (and fix if it races)
+  spec: SPEC-010
+  requirement: REQ-018
+  status: todo
+  depends_on:
+  - TASK-019
+  estimate: 1.5
+  self_test: php artisan test --filter=ApprovalDecisionConcurrencyTest
+TASK-118:
+  title: 'Real-subprocess concurrency test: DLP-eligibility job vs manual project close'
+  spec: SPEC-008
+  requirement: REQ-015
+  status: todo
+  estimate: 1
+  self_test: php artisan test --filter=ProjectClosureDlpConcurrencyTest
+TASK-119:
+  title: Concurrent duplicate callback and concurrent idempotency-key tests
+  spec: SPEC-014
+  requirement: REQ-023
+  status: todo
+  depends_on:
+  - TASK-020
+  estimate: 1.5
+  self_test: php artisan test --filter=IdempotencyKeyConcurrencyTest
+TASK-120:
+  title: 'Architecture test: every money-bearing model has the audit observer; mass update/delete banned on them'
+  spec: SPEC-004
+  requirement: REQ-022
+  status: todo
+  depends_on:
+  - TASK-019
+  estimate: 1.5
+  self_test: php artisan test --filter=AuditCoverageArchitectureTest
+  notes: 'Scope widened (KI-002): all money-bearing models — the 5 named (Invoice, Payment, PurchaseOrder, VariationOrder, RetentionRelease) plus the 36 found by the TASK-102 scan, listed in baselines/inventory.yaml KI-002. Record any model judged not money-bearing with a reason.'
+TASK-121:
+  title: 'Route sweep: every mutating route reachable by Finance/Admin carries the mfa middleware'
+  spec: SPEC-001
+  requirement: REQ-003
+  status: todo
+  estimate: 0.5
+  self_test: php artisan test --filter=MfaEnforcementRouteSweepTest
+TASK-122:
+  title: Cross-tenant HTTP sweep over every resource route
+  spec: SPEC-002
+  requirement: REQ-004
+  status: todo
+  depends_on:
+  - TASK-113
+  estimate: 2
+  self_test: php artisan test --filter=CrossTenantHttpIsolationTest
+  notes: 'dummy_records: move the HTTP cross-tenant isolation test off DummyRecord onto real resources, then drop the dummy_records table.'
+TASK-124:
+  title: User deactivation and role change, revoking all of the user's tokens
+  spec: SPEC-001
+  requirement: REQ-050
+  status: todo
+  depends_on:
+  - TASK-130
+  self_test: php artisan test --filter=UserAccessRevocationTest
+  notes: 'TASK-102/103 found no route that deactivates a user, changes a role or revokes another user''s tokens; users has no status column; login (app/Http/Controllers/Auth/LoginController.php:41-53) checks neither user nor tenant status. Re-adds the POLICY-015 actions (assign, deactivate) when the routes exist.'
+TASK-139:
+  title: Add missing foreign keys (sales_returns.credit_note_id, users.employee_id) after an orphaned-rows check
+  spec: SPEC-019
+  requirement: NFR-005
+  status: todo
+  notes: 'KI-012. Additive migration only; report any orphaned rows to the owner before adding the constraint.'
+TASK-140:
+  title: 'Hotfix: stop returning the eTIMS cmcKey in any HTTP response; scrub secrets before persisting raw provider responses'
+  spec: SPEC-014
+  requirement: REQ-024
+  status: todo
+  self_test: php artisan test --filter=SecretsRedactionTest
+  notes: 'KI-004 (broader): EtimsController returns the whole EtimsSubmission (app/Http/Controllers/EtimsController.php:19) and response_payload keeps the plaintext cmcKey on success (app/Services/EtimsService.php:117). Verified by SEC-TEST-010 (tests/Security/SecretsRedactionTest.php); creates the Security testsuite in phpunit.xml if TASK-111 has not yet.'
+TASK-130:
+  title: 'Token lifecycle: expiry, idle timeout, logout-everywhere, recovery codes, audited MFA reset, TOTP replay
+    guard'
+  spec: SPEC-001
+  requirement: REQ-033
+  status: todo
+  depends_on:
+  - TASK-103
+  estimate: 3
+  self_test: php artisan test --filter=TokenLifecycleTest
+TASK-131:
+  title: Named rate limiters per tenant/user/operation class with 429 + Retry-After
+  spec: SPEC-016
+  requirement: REQ-034
+  status: todo
+  estimate: 1.5
+  self_test: php artisan test --filter=RateLimitTest
+TASK-132:
+  title: 'Upload service: finfo sniffing, caps, PhpSpreadsheet hardening, private disk, UUID keys, signed URLs'
+  spec: SPEC-012
+  requirement: REQ-035
+  status: todo
+  estimate: 3
+  self_test: php artisan test --filter=UploadSecurityTest
+TASK-133:
+  title: 'M-Pesa trust model: per-request callback token, IP allowlist, STK Query confirmation, unique receipt constraint'
+  spec: SPEC-011
+  requirement: REQ-032
+  status: todo
+  depends_on:
+  - TASK-020
+  - TASK-103
+  estimate: 3
+  self_test: php artisan test --filter=MpesaCallbackTrustTest
+TASK-134:
+  title: PostgreSQL triggers blocking UPDATE/DELETE on posted journals and audit_logs; deferred balanced-entry constraint
+  spec: SPEC-003
+  requirement: REQ-036
+  status: todo
+  estimate: 2
+  self_test: php artisan test --filter=LedgerImmutabilityTriggerTest
+  notes: Additive migration; must coexist with reverse() and the concurrency tests manual tearDown (use a session
+    flag for test cleanup, never disable triggers in app code).
+TASK-135:
+  title: TenantContext for queued jobs, scheduled commands and console; tenant-keyed cache; lint banning withoutGlobalScopes
+    outside an allowlist
+  spec: SPEC-015
+  requirement: REQ-037
+  status: todo
+  estimate: 3
+  self_test: php artisan test --filter=TenantContextJobsTest
+TASK-136:
+  title: PostgreSQL Row-Level Security on tenant tables (SET LOCAL app.tenant_id)
+  spec: SPEC-015
+  requirement: REQ-037
+  status: todo
+  depends_on:
+  - TASK-135
+  - TASK-103
+  estimate: 4
+  notes: Only after ADR-003 approval.
+TASK-137:
+  title: APP_KEY rotation via APP_PREVIOUS_KEYS + credential re-encrypt command; redact secrets in logs and retained
+    raw responses
+  spec: SPEC-014
+  requirement: REQ-024
+  status: todo
+  depends_on:
+  - TASK-021
+  estimate: 2
+  self_test: php artisan test --filter=SecretsRedactionTest
+TASK-138:
+  title: Security headers (HSTS, CSP, frame-ancestors), CORS per environment, adversarial suite ADV-001..009
+  spec: SPEC-002
+  requirement: REQ-004
+  status: todo
+  depends_on:
+  - TASK-122
+  - TASK-133
+  - TASK-132
+  estimate: 3
+TASK-150:
+  title: 'HTTP client policy: explicit timeouts, jittered backoff for idempotent calls only, circuit breakers per
+    provider'
+  spec: SPEC-014
+  requirement: REQ-041
+  status: todo
+  estimate: 2
+  self_test: php artisan test --filter=IntegrationResilienceTest
+TASK-151:
+  title: Transactional outbox for every external side effect; dead-letter surfaced as Notification
+  spec: SPEC-014
+  requirement: REQ-041
+  status: todo
+  depends_on:
+  - TASK-150
+  estimate: 3
+TASK-152:
+  title: 'M-Pesa reconciliation job: STK Query for pending_external older than 3 minutes, expire after 24h'
+  spec: SPEC-011
+  requirement: REQ-032
+  status: todo
+  depends_on:
+  - TASK-133
+  - TASK-150
+  estimate: 1.5
+  self_test: php artisan test --filter=MpesaReconciliationJobTest
+TASK-153:
+  title: 'Scheduler hardening: onOneServer, Redis lock store, runtime-budget overrun Notification'
+  spec: SPEC-014
+  requirement: REQ-041
+  status: todo
+  estimate: 1.5
+TASK-154:
+  title: WAL/PITR backups, monthly restore drill, reconcile-and-repost runbook exercised
+  spec: SPEC-017
+  requirement: NFR-002
+  status: todo
+  depends_on:
+  - TASK-159
+  estimate: 3
+TASK-155:
+  title: 'Migration rehearsal: messy simulated client OpeningBalanceBatch, twice, second from mid-run restore'
+  spec: SPEC-007
+  requirement: REQ-012
+  status: todo
+  depends_on:
+  - TASK-154
+  estimate: 3
+TASK-156:
+  title: 'Migration lint: forbid drop/rename/type-change on financial tables'
+  spec: SPEC-019
+  requirement: NFR-005
+  status: todo
+  depends_on:
+  - TASK-105
+  estimate: 1
+  self_test: php artisan test --filter=MigrationSafetyLintTest
+TASK-157:
+  spec: SPEC-017
+  requirement: NFR-003
+  status: todo
+  estimate: 3
+  title: 'Observability: keep /up (liveness, unauthenticated) and /api/ready (DB, queue, cache); /api/health is authenticated and not a liveness check; add metrics export and alert rules for error rate, latency, queue depth, dead letters'
+TASK-158:
+  title: 'DPA tooling: employee anonymisation, tenant data export, tenant soft-delete with retention window'
+  spec: SPEC-015
+  requirement: REQ-040
+  status: todo
+  depends_on:
+  - TASK-135
+  estimate: 4
+  self_test: php artisan test --filter=DataSubjectRightsTest
+  notes: Re-adds the POLICY-009 anonymise action (removed from the matrix by TASK-103 until this task builds its route) as a maker-checker action.
+TASK-159:
+  title: Choose Kenya/Africa hosting for DB, backups, object storage; record ADR
+  spec: SPEC-017
+  requirement: NFR-006
+  status: todo
+  estimate: 1
+  notes: Human decision (ASM-005).
+TASK-170:
+  title: 'Volume seeder: 3-year mid-size contractor tenant (ASM-010 figures)'
+  spec: SPEC-018
+  requirement: NFR-001
+  status: todo
+  estimate: 2
+TASK-171:
+  title: Query-count assertions on every list endpoint
+  spec: SPEC-018
+  requirement: NFR-001
+  status: todo
+  depends_on:
+  - TASK-170
+  estimate: 2
+  self_test: php artisan test --filter=QueryCountListEndpointsTest
+TASK-172:
+  title: FK index audit test and EXPLAIN check on top-20 queries
+  spec: SPEC-018
+  requirement: NFR-001
+  status: todo
+  depends_on:
+  - TASK-170
+  estimate: 2
+  self_test: php artisan test --filter=ForeignKeyIndexAuditTest
+TASK-173:
+  title: k6 load test against per-class budgets; reports over budget move to queued job + Notification
+  spec: SPEC-018
+  requirement: NFR-001
+  status: todo
+  depends_on:
+  - TASK-171
+  - TASK-172
+  - TASK-103
+  estimate: 3
+TASK-174:
+  title: 'SPA bundle budget: route code-splitting, Vuetify tree-shaking, drop unused Materialize apps; Lighthouse
+    mobile'
+  spec: SPEC-018
+  requirement: NFR-001
+  status: todo
+  estimate: 3
+  ui: true
+TASK-175:
+  title: Tenant-keyed report cache invalidated on ledger posting
+  spec: SPEC-018
+  requirement: NFR-001
+  status: todo
+  depends_on:
+  - TASK-135
+  estimate: 1.5
+TASK-180:
+  title: Purchase Order cancel and short-close, wired into Project.cancel()
+  spec: SPEC-006
+  requirement: REQ-038
+  status: todo
+  depends_on:
+  - TASK-103
+  estimate: 3
+  self_test: php artisan test --filter=PurchaseOrderCancellationTest
+  notes: Re-adds the POLICY-006 cancel action (removed from the matrix by TASK-103 until this task builds the route).
+TASK-181:
+  title: Subcontract and Progress Claim settle/dispute actions
+  spec: SPEC-006
+  requirement: REQ-039
+  status: todo
+  depends_on:
+  - TASK-180
+  estimate: 3
+  self_test: php artisan test --filter=SubcontractSettlementTest
+TASK-182:
+  title: Dashboards for Manufacturing, Labour, Projects, Fixed Assets, HR
+  spec: SPEC-007
+  requirement: REQ-042
+  status: todo
+  estimate: 4
+  self_test: php artisan test --filter=ModuleDashboardsTest
+  ui: true
+TASK-183:
+  title: Accessibility pass on core screens; axe-core assertions inside Playwright journeys
+  spec: SPEC-020
+  requirement: REQ-043
+  status: todo
+  depends_on:
+  - TASK-115
+  estimate: 3
+  ui: true
+TASK-184:
+  title: Employee self-service payslip (own_only)
+  spec: SPEC-009
+  requirement: REQ-031
+  status: blocked
+  estimate: 3
+  notes: Needs a tenth role (ASM-011).
+  ui: true
+TASK-185:
+  title: eTIMS sales invoice, credit note and item registration via outbox
+  spec: SPEC-013
+  requirement: REQ-044
+  status: blocked
+  depends_on:
+  - TASK-151
+  - TASK-100
+  estimate: 6
+  self_test: php artisan test --filter=EtimsSalesSubmissionTest
+  notes: Blocked on KRA sandbox registration (director PIN + OTP).
+TASK-186:
+  title: Verify M-Pesa end-to-end against the real Daraja sandbox
+  spec: SPEC-011
+  requirement: REQ-020
+  status: blocked
+  depends_on:
+  - TASK-133
+  - TASK-152
+  estimate: 1
+  notes: Blocked on Daraja sandbox credentials. Discharged by ACC-003.
+TASK-187:
+  title: Live inventory availability board (materialised view, polled)
+  spec: SPEC-006
+  requirement: REQ-046
+  status: todo
+  depends_on:
+  - TASK-173
+  estimate: 4
+  ui: true
+TASK-190:
+  title: Self-audit command writing AUDIT-* for all 23 categories from real evidence
+  spec: SPEC-019
+  requirement: NFR-007
+  status: todo
+  depends_on:
+  - TASK-105
+  estimate: 2
+TASK-191:
+  title: RC (application profile) -> VERIFIED; deploy the same artifact to staging; `forge verify --profile staging
+    --environment staging` -> STAGING_VERIFIED
+  spec: SPEC-019
+  requirement: NFR-007
+  status: todo
+  depends_on:
+  - TASK-190
+  - TASK-138
+  - TASK-157
+  - TASK-173
+  - TASK-159
+  estimate: 2
+TASK-192:
+  title: UAT on staging with the first client (ACC-005) and short walkthroughs for daily workflows
+  spec: SPEC-020
+  requirement: REQ-047
+  status: todo
+  depends_on:
+  - TASK-191
+  estimate: 3
+  notes: 'Correct the User Manual role section to match the approved matrix (TASK-103): Finance cannot create parties or approve purchase orders; Sales cannot create invoices or initiate STK push; Procurement and Warehouse cannot view invoices.'
+TASK-193:
+  title: 'Operational handoff: runbooks for the top 3 incident classes (M-Pesa settlement drift, queue/outbox backlog,
+    database failover/restore), alerts wired, on-call contacts recorded'
+  spec: SPEC-017
+  requirement: NFR-003
+  status: todo
+  depends_on:
+  - TASK-157
+  - TASK-154
+  estimate: 2
+TASK-194:
+  title: Independent security review / penetration test of staging (ACC-008) — Forge R4 does not provide this; findings
+    become tasks
+  spec: SPEC-019
+  requirement: NFR-004
+  status: todo
+  depends_on:
+  - TASK-191
+  estimate: 5
+  notes: External party; budget and vendor are your decision.
+TASK-196:
+  title: Rollback plans ADR-009 (staging) and ADR-010 (production) completed and rehearsed on staging
+  spec: SPEC-017
+  requirement: NFR-002
+  status: todo
+  depends_on:
+  - TASK-191
+  - TASK-159
+  estimate: 1.5
+TASK-195:
+  title: Production approval (human sign-off) -> deploy -> smoke checks -> `forge verify --profile production --environment
+    production` -> PRODUCTION_VERIFIED
+  spec: SPEC-019
+  requirement: NFR-007
+  status: todo
+  depends_on:
+  - TASK-192
+  - TASK-193
+  - TASK-194
+  - TASK-196
+  estimate: 1.5
