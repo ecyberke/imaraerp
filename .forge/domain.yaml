@@ -1582,18 +1582,15 @@ authorization:
     resource: journal_entry
     requirement: REQ-006
     actions:
-      view: { finance: tenant_scoped, admin: tenant_scoped, sales: deny, procurement: deny, warehouse: deny, project_manager: deny, site_supervisor: deny, asset_manager: deny, hr_manager: deny }
-      create: { finance: tenant_scoped, admin: tenant_scoped, sales: deny, hr_manager: deny }
-      reverse: { finance: tenant_scoped, admin: tenant_scoped, sales: deny }
       update: { finance: deny, admin: deny }
       delete: { finance: deny, admin: deny }
-    notes: create/reverse also require completed MFA (REQ-003). Payroll postings reach Finance only as aggregate lines.
+    notes: No HTTP surface in v1.1.0 — journal entries are posted only by LedgerPostingService from business events, and corrected only by reverse(). update/delete stay denied. Manual journal entries for Finance are a v1.2.0 backlog candidate (baselines/inventory.yaml). Payroll postings reach Finance only as aggregate lines.
   POLICY-002:
     resource: invoice
     requirement: REQ-012
     actions:
-      view: { finance: tenant_scoped, sales: tenant_scoped, project_manager: tenant_scoped, procurement: tenant_scoped, warehouse: tenant_scoped, admin: tenant_scoped, hr_manager: deny, site_supervisor: deny, asset_manager: deny }
-      create: { finance: tenant_scoped, sales: tenant_scoped, admin: tenant_scoped, procurement: deny, warehouse: deny }
+      view: { finance: tenant_scoped, sales: tenant_scoped, project_manager: tenant_scoped, procurement: deny, warehouse: deny, admin: tenant_scoped, hr_manager: deny, site_supervisor: deny, asset_manager: deny }
+      create: { finance: tenant_scoped, sales: deny, admin: tenant_scoped, procurement: deny, warehouse: deny }
       issue_credit_note: { finance: tenant_scoped, admin: tenant_scoped, sales: deny }
       write_off: { finance: tenant_scoped, admin: tenant_scoped, sales: deny }
     notes: Role mapping derived from the User Manual; TASK-113 reconciles it against the real Policy classes and raises disagreements as decisions.
@@ -1601,33 +1598,29 @@ authorization:
     resource: payment
     requirement: REQ-020
     actions:
-      view: { finance: tenant_scoped, sales: tenant_scoped, admin: tenant_scoped, hr_manager: deny, warehouse: deny }
       record: { finance: tenant_scoped, admin: tenant_scoped, sales: deny }
-      initiate_stk_push: { finance: tenant_scoped, sales: tenant_scoped, admin: tenant_scoped, warehouse: deny }
+      initiate_stk_push: { finance: tenant_scoped, sales: deny, admin: tenant_scoped, warehouse: deny }
     notes: The Daraja callback is unauthenticated by necessity and is governed by ADR-002, not by this policy.
   POLICY-004:
     resource: payslip
     requirement: REQ-031
     actions:
       view: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny, sales: deny, project_manager: deny, procurement: deny, warehouse: deny, site_supervisor: deny, asset_manager: deny }
-      update: { hr_manager: tenant_scoped, admin: deny, finance: deny }
-    notes: Admin view pending ASM-007. Employee own_only access pending ASM-011 (no employee role exists yet).
+    notes: Payslips are read through PayrollRunPolicy@view (GET /api/payroll-runs/{id} loads the runs payslips). Admin keeps tenant-scoped view (ASM-007, approved 2026-10-02) and every payslip read is audit-logged. There is no update action — payslips are immutable outputs of a PayrollRun; corrections go through a new run. Employee own_only access pending ASM-011 (no employee role exists yet).
   POLICY-005:
     resource: audit_log
     requirement: REQ-022
     actions:
-      view: { admin: tenant_scoped, finance: tenant_scoped, hr_manager: deny, sales: deny, procurement: deny, warehouse: deny, project_manager: deny, site_supervisor: deny, asset_manager: deny }
       update: { admin: deny, finance: deny }
       delete: { admin: deny, finance: deny }
-    notes: Finance's view excludes rows whose subject is Payslip, Employee or EmploymentContract (row filter, enforced in the query and tested by SEC-TEST-003). The schema cannot express row filters.
+    notes: No in-app audit-trail viewer in v1.1.0 (v1.2.0 backlog candidate, baselines/inventory.yaml); update/delete stay denied. If a viewer is built, Finance's view must exclude rows whose subject is Payslip, Employee or EmploymentContract (row filter, enforced in the query and tested by SEC-TEST-003).
   POLICY-006:
     resource: purchase_order
     requirement: REQ-011
     actions:
       view: { procurement: tenant_scoped, finance: tenant_scoped, warehouse: tenant_scoped, project_manager: tenant_scoped, admin: tenant_scoped, sales: deny, hr_manager: deny }
       create: { procurement: tenant_scoped, admin: tenant_scoped, warehouse: deny, sales: deny }
-      approve: { procurement: tenant_scoped, finance: tenant_scoped, admin: tenant_scoped, warehouse: deny }
-      cancel: { procurement: tenant_scoped, admin: tenant_scoped, warehouse: deny }
+      approve: { procurement: tenant_scoped, finance: deny, admin: tenant_scoped, warehouse: deny }
     notes: Approval above threshold requires a second approver who is a different user (INV-009); holding two roles does not qualify one person twice.
   POLICY-007:
     resource: integration_credential
@@ -1640,7 +1633,7 @@ authorization:
     resource: party
     requirement: REQ-008
     actions:
-      create: { procurement: tenant_scoped, sales: tenant_scoped, finance: tenant_scoped, admin: tenant_scoped, warehouse: deny }
+      create: { procurement: tenant_scoped, sales: tenant_scoped, finance: deny, admin: tenant_scoped, warehouse: deny }
       delete: { admin: tenant_scoped, sales: deny, procurement: deny }
   POLICY-009:
     resource: employee
@@ -1648,8 +1641,7 @@ authorization:
     actions:
       view: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny, project_manager: deny }
       update: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny }
-      anonymise: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny }
-    notes: anonymise is a maker-checker action (DataSubjectRequest.approved_by differs from requested_by).
+    notes: anonymise was removed until TASK-158 builds its route; TASK-158 re-adds it as a maker-checker action (DataSubjectRequest.approved_by differs from requested_by).
   POLICY-010:
     resource: asset
     requirement: REQ-016
@@ -1680,10 +1672,10 @@ authorization:
       generate: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny }
       approve: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny }
       disburse: { hr_manager: tenant_scoped, admin: tenant_scoped, finance: deny }
-    notes: Finance reconciles payroll through POLICY-001 aggregate journal lines only (architecture §12.9).
+    notes: Finance reconciles payroll through POLICY-001 aggregate journal lines only (Imara-ERP-ARCHITECTURE.md:539 (§12 Open Decisions, item 9)).
   POLICY-015:
     resource: user_role_assignment
     requirement: REQ-005
     actions:
-      assign: { admin: tenant_scoped, hr_manager: deny, finance: deny }
       remove_last_admin: { admin: deny }
+    notes: No role-assignment or deactivation route exists in v1.1.0 (roles are set only by `tenant:provision` and invitation acceptance). TASK-124 (REQ-050) builds user deactivation and role change and re-adds the assign/deactivate actions here.

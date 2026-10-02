@@ -42,7 +42,7 @@ The table has one row per area Forge cares about. Ratings: **Met** means v1.0 al
 | `unit` / `integration` gates | 243 tests, 65 on ledger posting | Met | Registered as TEST-001..026; scaffold tests removed (TASK-104) |
 | `contract` gate | No OpenAPI document | Gap | TASK-112 generated OpenAPI plus contract tests |
 | `e2e` gate with journeys | **No browser tests at all** | Gap | TASK-115 Playwright on the boot contract; JRN-001..007 |
-| Boot contract (`runtime`, `clean_room`) | `/health` and `/ready` exist (kept — Forge's production smoke calls `GET /health`); README is template boilerplate the handover says to ignore | Partial | `runtime.yaml`; clean-room setup; README fixed (TASK-104) |
+| Boot contract (`runtime`, `clean_room`) | `/up` (liveness, unauthenticated) and `/api/ready` exist; `/api/health` is authenticated and is not a liveness check; README is template boilerplate the handover says to ignore | Partial | `runtime.yaml`; clean-room setup; README fixed (TASK-104) |
 | Brownfield baseline inventory and known-issue register | Neither exists | Gap | `.forge/baselines/inventory.yaml` (draft, KI-001..010), completed from code in TASK-102 |
 | Requirements without an automated check flagged `forge_verified: false` | — | Gap | Set on 6 baseline and all 26 new requirements |
 | `security` gate: dependency audit, secrets scan, authz matrix | None of the three | Gap | TASK-111, TASK-113; SEC-TEST-001..013 |
@@ -218,7 +218,7 @@ Forge's decision budget forbids inferring payment behaviour, tenancy, deployment
 | ASM-008 | Purchase Order cancellation allowed only from pending_approval/approved/ordered with zero received quantity; partially_received POs are short-closed (remaining lines cancelled, received lines stand). No ledger posting on cancel since nothing has been received. | medium | TASK-180 |
 | ASM-009 | Adopt PostgreSQL Row-Level Security (SET LOCAL app.tenant_id per transaction) as defense in depth behind TenantScope. | medium | TASK-136 |
 | ASM-010 | Performance sizing for v1.1.0 load tests — 20 tenants, 25 concurrent users per tenant at peak, sustained 30 rps / burst 120 rps across the deployment, seeded tenant of 3 years for a mid-size contractor (~600k journal lines, ~250k stock_ledger rows). | low | TASK-173 |
-| ASM-011 | Employee self-service payslip access (architecture §12.9) requires a tenth "employee" role, which v1.0 does not have; deferred until confirmed. | high | TASK-184 |
+| ASM-011 | Employee self-service payslip access (Imara-ERP-ARCHITECTURE.md:539 (§12 Open Decisions, item 9)) requires a tenth "employee" role, which v1.0 does not have; deferred until confirmed. | high | TASK-184 |
 
 ---
 
@@ -231,7 +231,7 @@ The comparison turned up these mismatches. They are recorded so they get correct
 3. **Money assertions.** `execution_plan.md` says to use `assertEqualsWithDelta` for money, but money is integer cents. → ADR-008.
 4. **README.** It is template boilerplate, which the handover explicitly warns about. → TASK-104 plus the `clean_room` check.
 5. **Scaffold tests counted as coverage.** `ExampleTest` ("true is true") is included in the 243. → TASK-104.
-6. **Payslip self-service.** v21 §12.9 promises employee self-service payslips, but no employee role exists. → ASM-011.
+6. **Payslip self-service.** v21 Imara-ERP-ARCHITECTURE.md:539 (§12 Open Decisions, item 9) promises employee self-service payslips, but no employee role exists. → ASM-011.
 7. **Undated statement.** §1.1's performance targets were stated but never measured. → TASK-173.
 
 ## 8. Verification of this document set
@@ -241,7 +241,7 @@ The comparison turned up these mismatches. They are recorded so they get correct
 I therefore re-read the parts rev. 1 applied least thoroughly: the CLI surface, release profiles, maturity transitions, brownfield rules, scaffold behaviour and R4 limits. Rev. 2 fixes what that turned up:
 - rollback ADRs (ADR-009, ADR-010);
 - operational handoff (TASK-193);
-- `/health` kept rather than replaced with `/live`;
+- liveness is Laravel's `/up`, not `/health` or a new `/live` (corrected by TASK-102/103: `/api/health` requires auth);
 - `forge accept` takes one ACC-ID per call;
 - staging verification needs `--environment`;
 - the two human maturity gates;
@@ -332,7 +332,7 @@ Multi-tenant SaaS ERP for Kenyan construction contractors. A Vue 3 + Vuetify SPA
   - technology: finfo, PhpSpreadsheet (read-data-only), S3-compatible private bucket
   - requirements: REQ-035
   - specifications: SPEC-012
-- **COMP-012** Operations — /health and /ready, metrics, alerting, PITR backups, restore drills, CI gates, self-audit, runbooks.
+- **COMP-012** Operations — /up and /api/ready, metrics, alerting, PITR backups, restore drills, CI gates, self-audit, runbooks.
   - technology: GitHub Actions, PostgreSQL WAL archiving, structured JSON logs
   - requirements: NFR-002, NFR-003, NFR-004, NFR-005, NFR-006, NFR-007, NFR-008, NFR-009
   - specifications: SPEC-017, SPEC-019
@@ -344,7 +344,7 @@ Multi-tenant SaaS ERP for Kenyan construction contractors. A Vue 3 + Vuetify SPA
 
 ### Interfaces
 - HTTPS JSON API /api/* (OpenAPI 3.1 generated, TASK-112), bearer token, idempotency-key header on financial mutations
-- Health GET /health (liveness, used by Forge production smoke) and GET /ready (DB, queue, cache)
+- Health GET /up (liveness, unauthenticated; used by the production smoke check) and GET /api/ready (DB, queue, cache). GET /api/health is authenticated and is not a liveness check
 - Inbound webhook POST /api/webhooks/mpesa/stk/{request_token} (unauthenticated by necessity, ADR-002)
 - Outbound Daraja, eTIMS OSCU, TalkSasa via INT-001..003
 

@@ -1,7 +1,7 @@
-# USER-OWNED. Drafted for approval via ADR-001 — Forge never edits this file.
+# USER-OWNED — Forge never edits this file. Approved by Lavyd 2026-10-02 (TASK-103, ADR-001).
 schema: forge/project/v2
 name: imara-erp
-risk_class: R4            # proposed; R3 is the floor — see ASM-001 / ADR-001
+risk_class: R4            # approved 2026-10-02 (ASM-001 / ADR-001)
 architecture:
   style: modular-monolith
   frontend_backend: separate      # Vue 3 SPA + Laravel JSON API behind an SPA catch-all

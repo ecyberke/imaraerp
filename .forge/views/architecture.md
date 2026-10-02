@@ -53,7 +53,7 @@ Multi-tenant SaaS ERP for Kenyan construction contractors. A Vue 3 + Vuetify SPA
   - technology: finfo, PhpSpreadsheet (read-data-only), S3-compatible private bucket
   - requirements: REQ-035
   - specifications: SPEC-012
-- **COMP-012** Operations — /health and /ready, metrics, alerting, PITR backups, restore drills, CI gates, self-audit, runbooks.
+- **COMP-012** Operations — /up and /api/ready, metrics, alerting, PITR backups, restore drills, CI gates, self-audit, runbooks.
   - technology: GitHub Actions, PostgreSQL WAL archiving, structured JSON logs
   - requirements: NFR-002, NFR-003, NFR-004, NFR-005, NFR-006, NFR-007, NFR-008, NFR-009
   - specifications: SPEC-017, SPEC-019
@@ -65,7 +65,7 @@ Multi-tenant SaaS ERP for Kenyan construction contractors. A Vue 3 + Vuetify SPA
 
 ### Interfaces
 - HTTPS JSON API /api/* (OpenAPI 3.1 generated, TASK-112), bearer token, idempotency-key header on financial mutations
-- Health GET /health (liveness, used by Forge production smoke) and GET /ready (DB, queue, cache)
+- Health GET /up (liveness, unauthenticated; used by the production smoke check) and GET /api/ready (DB, queue, cache). GET /api/health is authenticated and is not a liveness check
 - Inbound webhook POST /api/webhooks/mpesa/stk/{request_token} (unauthenticated by necessity, ADR-002)
 - Outbound Daraja, eTIMS OSCU, TalkSasa via INT-001..003
 
@@ -84,7 +84,7 @@ Multi-tenant SaaS ERP for Kenyan construction contractors. A Vue 3 + Vuetify SPA
 ### Reliability
 - **backup_restore**: Continuous WAL archiving with point-in-time recovery (RPO 15 min), daily base backups retained 35 days, monthly retained 12 months, encrypted, stored in a second in-region zone/provider; bucket versioning plus replication. RTO 4 h for regional loss. Restore drilled monthly into scratch and logged.
 - **concurrency**: Pessimistic row locks for credit checks, stock reservations, milestone sign-off, BOQ-line VO mutation and document sequences; unique constraints for approvals, idempotency keys and M-Pesa receipts; optimistic version check between DLP job and manual closure; advisory lock on the first reservation for an item. Every one is an INV-* with a real-subprocess concurrency_test.
-- **failure_modes**: Daraja timeout/5xx on initiation -> request failed, no retry, user may resend (initiation is not idempotent), Daraja callback lost -> reconciliation job runs STK Query after 3 min, expires at 24 h, Daraja 429 or breaker open -> STK disabled with a clear message; invoices still payable by other methods, eTIMS down -> invoice raised locally, submission waits in outbox, dead-letter Notification after retries, TalkSasa down -> in-app notification already committed; SMS dead-letters, Database unavailable -> /ready fails, load balancer drains, writes fail fast with 503, Queue worker crash mid-job -> job retried; idempotency keys and unique constraints prevent double effect, Scheduled job overrunning its interval -> withoutOverlapping/onOneServer skip plus overrun Notification
+- **failure_modes**: Daraja timeout/5xx on initiation -> request failed, no retry, user may resend (initiation is not idempotent), Daraja callback lost -> reconciliation job runs STK Query after 3 min, expires at 24 h, Daraja 429 or breaker open -> STK disabled with a clear message; invoices still payable by other methods, eTIMS down -> invoice raised locally, submission waits in outbox, dead-letter Notification after retries, TalkSasa down -> in-app notification already committed; SMS dead-letters, Database unavailable -> /api/ready fails, load balancer drains, writes fail fast with 503, Queue worker crash mid-job -> job retried; idempotency keys and unique constraints prevent double effect, Scheduled job overrunning its interval -> withoutOverlapping/onOneServer skip plus overrun Notification
 - **graceful_degradation**: Integrations are non-critical to every core flow: invoicing, approvals, payroll and reporting never wait on Daraja, eTIMS or SMS. Report generation over budget degrades to async with Notification.
 - **idempotency**: Idempotency-Key header on every financial mutation with a unique (tenant, key) constraint and stored response; provider events deduplicated by unique CheckoutRequestID and receipt number; outbox keyed per provider operation; depreciation unique per asset and period.
 - **migration_rollback**: Financial tables are additive-only (lint in CI). Every migration is expand/contract: add nullable, backfill in a job, then constrain in a later release. Large-table indexes use CREATE INDEX CONCURRENTLY in a non-transactional migration. Every migration ships a tested down() or a written forward-fix plan; restore-from-backup is never the rollback plan.

@@ -12,7 +12,7 @@ _PRs #18 -> #19 -> #20 merged in order by a human (eTIMS behind a default-off fl
 - **TASK-022** [PR #19] IntegrationCredentialService (encrypted, masked) (spec: SPEC-014, requirement: REQ-024, status: done)
 - **TASK-100** Per-tenant integration feature flags; eTIMS and M-Pesa default OFF (spec: SPEC-013, requirement: REQ-045, status: done)
 - **TASK-102** Brownfield baseline: complete .forge/baselines/inventory.yaml from a code read, populate domain.yaml entities from migrations, register every suite test in verification/tests.yaml (spec: SPEC-019, requirement: NFR-007, status: review)
-- **TASK-103** Approve constitution (project.yaml, risk class) and ADR-001..008 (spec: SPEC-019, requirement: NFR-007, status: todo)
+- **TASK-103** Approve constitution (project.yaml, risk class) and ADR-001..008 (spec: SPEC-019, requirement: NFR-007, status: done)
 - **TASK-104** Clean-room README, delete ExampleTest scaffolding, exact-cent assertion convention; run `forge scaffold` (never --merge) for CLAUDE.md/AGENTS.md marker blocks plus a hand-written Imara section (spec: SPEC-019, requirement: NFR-009, status: todo)
 - **TASK-105** CI workflow (GitHub Actions + PostgreSQL 16 service) running every declared dimension (spec: SPEC-019, requirement: NFR-007, status: todo)
 
@@ -32,10 +32,12 @@ _Every R4 application-profile dimension has a command that can fail. Missing pro
 - **TASK-120** Architecture test: every money-bearing model has the audit observer; mass update/delete banned on them (spec: SPEC-004, requirement: REQ-022, status: todo)
 - **TASK-121** Route sweep: every mutating route reachable by Finance/Admin carries the mfa middleware (spec: SPEC-001, requirement: REQ-003, status: todo)
 - **TASK-122** Cross-tenant HTTP sweep over every resource route (spec: SPEC-002, requirement: REQ-004, status: todo)
+- **TASK-140** Hotfix: stop returning the eTIMS cmcKey in any HTTP response; scrub secrets before persisting raw provider responses (spec: SPEC-014, requirement: REQ-024, status: todo)
 
 ### Phase 2 — Security hardening
 _Close the security gaps the new gates expose: token lifecycle, rate limits, upload pipeline, M-Pesa trust model, DB-level immutability, tenant context for jobs, RLS (if ADR-003 approved), secret rotation and redaction, headers and adversarial suite. Exit: security and adversarial dimensions pass, 0 exploited._
 
+- **TASK-124** User deactivation and role change, revoking all of the user's tokens (spec: SPEC-001, requirement: REQ-050, status: todo)
 - **TASK-130** Token lifecycle: expiry, idle timeout, logout-everywhere, recovery codes, audited MFA reset, TOTP replay guard (spec: SPEC-001, requirement: REQ-033, status: todo)
 - **TASK-131** Named rate limiters per tenant/user/operation class with 429 + Retry-After (spec: SPEC-016, requirement: REQ-034, status: todo)
 - **TASK-132** Upload service: finfo sniffing, caps, PhpSpreadsheet hardening, private disk, UUID keys, signed URLs (spec: SPEC-012, requirement: REQ-035, status: todo)
@@ -45,6 +47,7 @@ _Close the security gaps the new gates expose: token lifecycle, rate limits, upl
 - **TASK-136** PostgreSQL Row-Level Security on tenant tables (SET LOCAL app.tenant_id) (spec: SPEC-015, requirement: REQ-037, status: todo)
 - **TASK-137** APP_KEY rotation via APP_PREVIOUS_KEYS + credential re-encrypt command; redact secrets in logs and retained raw responses (spec: SPEC-014, requirement: REQ-024, status: todo)
 - **TASK-138** Security headers (HSTS, CSP, frame-ancestors), CORS per environment, adversarial suite ADV-001..009 (spec: SPEC-002, requirement: REQ-004, status: todo)
+- **TASK-139** Add missing foreign keys (sales_returns.credit_note_id, users.employee_id) after an orphaned-rows check (spec: SPEC-019, requirement: NFR-005, status: todo)
 
 ### Phase 3 — Reliability and data protection
 _Outbox, circuit breakers, reconciliation, scheduler hardening, migration lint, observability, DPA tooling, hosting decision, restore drill and migration rehearsal. Exit: reliability and runtime dimensions pass; ACC-001, ACC-002, ACC-006 recorded via forge accept._
@@ -56,7 +59,7 @@ _Outbox, circuit breakers, reconciliation, scheduler hardening, migration lint, 
 - **TASK-154** WAL/PITR backups, monthly restore drill, reconcile-and-repost runbook exercised (spec: SPEC-017, requirement: NFR-002, status: todo)
 - **TASK-155** Migration rehearsal: messy simulated client OpeningBalanceBatch, twice, second from mid-run restore (spec: SPEC-007, requirement: REQ-012, status: todo)
 - **TASK-156** Migration lint: forbid drop/rename/type-change on financial tables (spec: SPEC-019, requirement: NFR-005, status: todo)
-- **TASK-157** Observability: keep /health (liveness) and /ready (DB, queue, cache), add metrics export and alert rules for error rate, latency, queue depth, dead letters (spec: SPEC-017, requirement: NFR-003, status: todo)
+- **TASK-157** Observability: keep /up (liveness, unauthenticated) and /api/ready (DB, queue, cache); /api/health is authenticated and not a liveness check; add metrics export and alert rules for error rate, latency, queue depth, dead letters (spec: SPEC-017, requirement: NFR-003, status: todo)
 - **TASK-158** DPA tooling: employee anonymisation, tenant data export, tenant soft-delete with retention window (spec: SPEC-015, requirement: REQ-040, status: todo)
 - **TASK-159** Choose Kenya/Africa hosting for DB, backups, object storage; record ADR (spec: SPEC-017, requirement: NFR-006, status: todo)
 

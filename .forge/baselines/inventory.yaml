@@ -61,14 +61,19 @@ http_surface:
     - GET /sanctum/csrf-cookie (registered by Sanctum; unused in bearer-only mode — TASK-130/138 to decide whether to disable)
     - "GET /{any?} (SPA catch-all, web middleware)"
   mutating_routes_by_method: { POST: 140, PUT|PATCH: 5, PATCH: 4, PUT: 2, DELETE: 5 }
-  matrix_actions_with_no_route:   # see the TASK-102 policy disagreement table
-    - journal entries (view/create/reverse) — no route, no JournalEntryPolicy
-    - audit log (view) — AuditLogPolicy exists, no route
-    - payment (view) — PaymentPolicy@view exists, no route
-    - payslip (update) — no route, no PayslipPolicy; payslips are read through GET /api/payroll-runs/{id}
-    - purchase order (cancel) — KI-006
-    - employee (anonymise) — TASK-158
-    - role assignment — no route; roles set only by `tenant:provision` and invitation acceptance
+  matrix_actions_with_no_route:   # TASK-102 table; resolved by the owner in TASK-103 — all removed from the matrix
+    - journal entries (view/create/reverse) — removed; manual journal entries are a v1.2.0 backlog candidate
+    - audit log (view) — removed; an in-app audit-trail viewer is a v1.2.0 backlog candidate
+    - payment (view) — removed
+    - payslip (update) — removed; payslips are immutable PayrollRun outputs, read through GET /api/payroll-runs/{id}
+    - purchase order (cancel) — removed; TASK-180 re-adds it with the route (KI-006)
+    - employee (anonymise) — removed; TASK-158 re-adds it with the route
+    - role assignment — removed; no deactivation or role-change route exists either; TASK-124 (REQ-050) re-adds it
+  user_access_revocation: >-
+    None after invitation (TASK-103 check): no route deactivates a user, changes a role or revokes another user's
+    tokens; users has no status column; the only revocation is the caller's own other tokens on password change
+    (app/Http/Controllers/AccountController.php:42); login checks neither user nor tenant status
+    (app/Http/Controllers/Auth/LoginController.php:41-53); tokens never expire (KI-005). REQ-050 / TASK-124.
   routes: # METHOD /uri -> action [auth, mfa, throttle]
     - 'PATCH /api/account/password -> AccountController@changePassword [auth]'
     - 'GET|HEAD /api/approval-limits -> ApprovalLimitController@index [auth]'
@@ -351,6 +356,7 @@ schema_surface:
     - table: dummy_records
       read: "Exists only for platform-foundation's HTTP cross-tenant isolation test; its migration says 'Not an ERP entity ... safe to drop once a real tenant-scoped entity exists' (2026_09_12_000005_create_dummy_records_table.php:4-11)."
       question: "Keep it as a test fixture, or drop it once SEC-TEST-002 (TASK-122) covers isolation on real resources? Dropping is destructive — owner decides."
+      decision: "Owner (TASK-103, 2026-10-02): TASK-122 moves the isolation test to real resources, then drops the table."
 scheduled_jobs:
   jobs:   # routes/console.php
     - { command: invitations:prune-expired, schedule: daily, line: 14 }
@@ -441,7 +447,7 @@ known_issues:   # recorded, not fixed silently (brownfield.md). verdict: confirm
       no $hidden), while the same key is kept encrypted in IntegrationCredential. EtimsController returns the
       whole submission (app/Http/Controllers/EtimsController.php:19), so the plaintext cmcKey is also sent in
       the HTTP response to the admin who initialised the device.
-    tracked_by: TASK-137
+    tracked_by: [TASK-140, TASK-137]   # TASK-140 hotfix first in Phase 1; TASK-137 redaction and key rotation
   - id: KI-005
     issue: No Sanctum token expiry documented
     verdict: confirmed
@@ -464,15 +470,23 @@ known_issues:   # recorded, not fixed silently (brownfield.md). verdict: confirm
       forge validate also warns STD-TST-005 on TEST-023).
     tracked_by: TASK-104
   - id: KI-008
-    issue: Scheduled jobs resolve tenant via the auth guard; behaviour with no authenticated user unverified
-    verdict: refuted-as-worded
+    issue: TenantScope filters nothing when no user is authenticated, so scheduled commands run across all tenants with no explicit tenant context
+    verdict: confirmed (reworded by TASK-103; the draft said jobs resolve the tenant through the auth guard, which is not what the code does)
     evidence: >-
-      No command resolves a tenant through the auth guard (0 Auth::/auth() references in app/Console/Commands).
-      With no Sanctum user, TenantScope adds no filter (app/Models/Scopes/TenantScope.php:46-48), so console code
-      runs across all tenants: RunMonthlyAssetDepreciation iterates Tenant::all() (RunMonthlyAssetDepreciation.php:29);
-      ProjectService::evaluateDlpEligibility queries Project::withoutGlobalScopes() for every tenant
-      (app/Services/ProjectService.php:102). The real gap TASK-135 owns is the absence of an explicit TenantContext,
-      not a guard lookup.
+      TenantScope applies its tenant_id filter only when a Sanctum user resolves (app/Models/Scopes/TenantScope.php:46-48);
+      no console code touches the auth guard. All five scheduled commands therefore run unscoped. TASK-103 read every
+      query they reach (there are no queued jobs, listeners or queued notifications in app/): none resolves another
+      tenant's row by code or name. The cross-tenant queries are deliberate sweeps that write in place:
+      UserInvitation expired-row delete (app/Console/Commands/PruneExpiredInvitations.php:22-25, deletes);
+      ResourceAssignment scheduled->active and active->completed (app/Services/ResourceAssignmentService.php
+      advanceScheduledTransitions, updates); Project defects_liability scan (app/Services/ProjectService.php:102, updates
+      dlp_ready_to_close and creates Notifications); Notification digest sweep (app/Services/NotificationService.php
+      dispatchDueDigests, updates sent_at). Downstream lookups pin tenant_id (LedgerPostingService.php:140-180,
+      AccountingPeriodResolver.php:46-68, DocumentSequenceService.php:51-75, NotificationService::notifyRole,
+      Defect lookup ProjectService.php DLP block) or go by globally unique id. Depreciation iterates Tenant::all()
+      and filters assets by tenant_id (RunMonthlyAssetDepreciation.php:29, DepreciationRunService.php:45). The
+      unauthenticated M-Pesa callback path also pins tenant_id (PaymentService::receive). Risk is structural, not an
+      active leak: any new job or command written without an explicit TenantContext inherits an unscoped query layer.
     tracked_by: TASK-135
   - id: KI-009
     issue: Performance targets (§1.1) never measured; restore and migration rehearsal never run
@@ -483,12 +497,12 @@ known_issues:   # recorded, not fixed silently (brownfield.md). verdict: confirm
       that do not exist yet (verification/dimensions.yaml).
     tracked_by: [TASK-173, TASK-154, TASK-155]
   - id: KI-010
-    issue: Employee self-service payslip promised in §12.9 but no employee role exists
+    issue: Employee self-service payslip promised in Imara-ERP-ARCHITECTURE.md:539 (§12 Open Decisions, item 9) but no employee role exists
     verdict: confirmed
     evidence: >-
       Role::CATALOG has nine roles and no employee role (app/Models/Role.php:31-41). The promise is at
       Imara-ERP-ARCHITECTURE.md:539 (resolved question 9: "An employee's own Payslip remains visible to
-      themselves via self-service"), not §12.9 as the draft cited.
+      themselves via self-service"). "§12.9" in the draft meant §12 Open Decisions, item 9 — the same place; references now cite the line.
     tracked_by: TASK-184
   - id: KI-011
     issue: typed-router.d.ts is tracked but regenerated by unplugin-vue-router whenever a dev server or build runs, so a running dev server dirties the tree and will invalidate release candidates
@@ -504,7 +518,7 @@ known_issues:   # recorded, not fixed silently (brownfield.md). verdict: confirm
       finance-billing's CreditNote") and users.employee_id (2026_09_19_000007_add_employee_id_to_users_table.php:19)
       are plain nullable bigints; credit_notes and employees now exist. resources.employee_id, the same pattern,
       did get its FK.
-    tracked_by: unassigned — adding an FK to a financial table needs an additive migration; owner to assign
+    tracked_by: TASK-139
   - id: KI-013
     issue: A tracked, never-run copy of the v19 LedgerPostingService reference implementation and tests sits at the repo root
     verdict: confirmed
@@ -512,22 +526,33 @@ known_issues:   # recorded, not fixed silently (brownfield.md). verdict: confirm
       LedgerPostingServiceTest.php (1836 lines, 59 tests, committed in 0a4fed9 project-init) differs from
       tests/Feature/LedgerPostingServiceTest.php (893 lines, 65 tests); phpunit.xml suites cover only tests/Unit and
       tests/Feature, so it never runs.
-    tracked_by: unassigned — proposed TASK-104 (scaffolding clean-up); deleting it is the owner's call
+    tracked_by: TASK-104
   - id: KI-014
     issue: The runtime dimension and the draft inventory probe /health, which does not exist unauthenticated
-    verdict: confirmed
+    verdict: confirmed — fixed in TASK-103
     evidence: >-
       verification/dimensions.yaml runtime curls http://127.0.0.1:8000/health and /ready; the real probes are
       GET /up and GET /api/ready, and /api/health requires auth:sanctum (routes/api.php:114). runtime.yaml
-      readiness_url was corrected to /api/ready under TASK-102; the dimension command was not changed.
+      readiness_url was corrected to /api/ready under TASK-102. TASK-103 fixed the runtime dimension (curl /up and /api/ready), the architecture interface text, NFR-003, TASK-157, ADR-010's smoke trigger and both v1.1.0 docs.
     tracked_by: [TASK-115, TASK-157]
   - id: KI-015
-    issue: Resources the authorization matrix declares have no Policy class or no HTTP route (JournalEntry, Payslip and Role/User assignment have neither; AuditLog and Payment view have a policy but no route)
+    issue: After the TASK-103 matrix decisions, six view-only grants in the matrix are not yet implemented in code, and two matrix resources still have no Policy class
     verdict: confirmed
-    evidence: "app/Policies has no JournalEntryPolicy, PayslipPolicy, RolePolicy or UserPolicy (asset revalue/dispose are covered by AssetPolicy@update); route:list has no journal-entry, audit-log, payment-view, payslip or role-assignment route. Detailed in the TASK-102 policy disagreement table."
-    tracked_by: TASK-113
+    evidence: >-
+      Gate::forUser()->allows() per role (TASK-102 probe, re-checked after the TASK-103 matrix edits) denies:
+      InvoicePolicy@view for sales and project_manager (POLICY-002); PurchaseOrderPolicy@view for finance and
+      project_manager (POLICY-006); AssetPolicy@view for finance (POLICY-010); MilestonePolicy@view for finance
+      (POLICY-011). No Policy class exists for JournalEntry (POLICY-001, now update/delete deny only) or for user
+      role assignment (POLICY-015, now remove_last_admin deny only); with no route either, those deny-only actions
+      hold. Payslip view is governed by PayrollRunPolicy@view; AuditLogPolicy covers POLICY-005's deny-only actions.
+    tracked_by: TASK-113 (the six grants); TASK-124 adds the user-management policy when it re-adds POLICY-015 actions
   - id: KI-016
     issue: Lockout test is timing-sensitive
     verdict: confirmed
     evidence: "tests/Feature/PlatformOpsTest.php:69 asserts 'Try again in 900 seconds' exactly; failed once in a slow full run on 2026-10-02 and passed alone"
-    tracked_by: unassigned — fixing it means changing the test's expectation; owner decides
+    tracked_by: TASK-104
+backlog_candidates_v1_2_0:   # owner decision 2026-10-02 (TASK-103) — candidates only, not requirements
+  - title: Manual journal entries for Finance
+    from: POLICY-001 view/create/reverse removed from the v1.1.0 matrix (no route today)
+  - title: In-app audit-trail viewer
+    from: POLICY-005 view removed from the v1.1.0 matrix (AuditLogPolicy exists, no route); Finance's row filter on Payslip, Employee and EmploymentContract subjects applies if built

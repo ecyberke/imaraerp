@@ -285,9 +285,24 @@ TASK-103:
   title: Approve constitution (project.yaml, risk class) and ADR-001..008
   spec: SPEC-019
   requirement: NFR-007
-  status: todo
+  status: done
   estimate: 0.5
-  notes: Human decision. Blocked by ASM-001/002/003/007/008/009.
+  notes: 'Approved by Lavyd 2026-10-02: project.yaml as drafted (risk_class R4); ADR-001..010 accepted; ASM-001, -002, -003, -007, -008, -009 confirmed (ASM-005, -010, -011 stay open); authorization matrix trimmed to v1.1.0 routes with six view-only grants left for TASK-113.'
+  paths:
+  - .forge/project.yaml
+  - .forge/assumptions.yaml
+  - .forge/decisions/
+  - .forge/domain.yaml
+  - .forge/requirements.yaml
+  - .forge/specs.yaml
+  - .forge/tasks.yaml
+  - .forge/execution-plan.yaml
+  - .forge/architecture.yaml
+  - .forge/verification/dimensions.yaml
+  - .forge/verification/tests.yaml
+  - .forge/baselines/inventory.yaml
+  - Imara-ERP-v1.1.0-ARCHITECTURE.md
+  - Imara-ERP-v1.1.0-EXECUTION-PLAN.md
 TASK-104:
   title: Clean-room README, delete ExampleTest scaffolding, exact-cent assertion convention; run `forge scaffold`
     (never --merge) for CLAUDE.md/AGENTS.md marker blocks plus a hand-written Imara section
@@ -297,8 +312,7 @@ TASK-104:
   depends_on:
   - TASK-102
   estimate: 0.5
-  notes: '`forge scaffold --merge` overwrites .gitignore and .env.example with generic content (drops /vendor, storage/,
-    Laravel variables). Plain `forge scaffold` skips existing files.'
+  notes: '`forge scaffold --merge` overwrites .gitignore and .env.example with generic content (drops /vendor, storage/, Laravel variables). Plain `forge scaffold` skips existing files. TASK-102/103 baseline items: (KI-007) replace the delta at tests/Feature/HrPayrollTest.php:213 with an exact-cents assertion; if it then fails, stop and report — that is a payroll bug, not a test to loosen. (KI-013) Compare the root v19 LedgerPostingServiceTest.php (59 cases) with tests/Feature/LedgerPostingServiceTest.php; port any rule not covered, then delete the root file. (KI-016) Freeze time in PlatformOpsTest::test_repeated_failed_logins_lock_the_account_out. (KI-011) Decide commit-and-regenerate vs untrack for typed-router.d.ts.'
 TASK-105:
   title: CI workflow (GitHub Actions + PostgreSQL 16 service) running every declared dimension
   spec: SPEC-019
@@ -344,8 +358,7 @@ TASK-113:
   - TASK-102
   estimate: 4
   self_test: php artisan test --filter=AuthorizationMatrixTest
-  notes: Where a Policy disagrees with the matrix, fix the Policy or raise a decision — never edit the matrix to
-    match.
+  notes: 'Where a Policy disagrees with the matrix, fix the Policy or raise a decision — never edit the matrix to match. Required Policy changes, view-only (owner decision 2026-10-02, TASK-103): InvoicePolicy@view allow sales and project_manager (POLICY-002); PurchaseOrderPolicy@view allow finance and project_manager (POLICY-006); AssetPolicy@view allow finance (POLICY-010); MilestonePolicy@view allow finance (POLICY-011). These six are the remaining code-vs-matrix disagreements (KI-015).'
 TASK-114:
   title: 'Payroll confidentiality: Finance denied Payslip and salary-bearing AuditLog rows'
   spec: SPEC-002
@@ -355,6 +368,7 @@ TASK-114:
   - TASK-113
   estimate: 2
   self_test: php artisan test --filter=PayrollConfidentialityTest
+  notes: 'ASM-007 approved 2026-10-02: Admin keeps tenant-scoped payslip view through PayrollRunPolicy@view and every payslip read must be audit-logged. v1.0 does not log reads (PayrollRunController@show loads payslips without an AuditLog entry) — implement the read audit here; SEC-TEST-003 asserts it.'
 TASK-115:
   title: Playwright harness on runtime.yaml boot contract; journeys JRN-001..007
   spec: SPEC-019
@@ -405,6 +419,7 @@ TASK-120:
   - TASK-019
   estimate: 1.5
   self_test: php artisan test --filter=AuditCoverageArchitectureTest
+  notes: 'Scope widened (KI-002): all money-bearing models — the 5 named (Invoice, Payment, PurchaseOrder, VariationOrder, RetentionRelease) plus the 36 found by the TASK-102 scan, listed in baselines/inventory.yaml KI-002. Record any model judged not money-bearing with a reason.'
 TASK-121:
   title: 'Route sweep: every mutating route reachable by Finance/Admin carries the mfa middleware'
   spec: SPEC-001
@@ -421,6 +436,29 @@ TASK-122:
   - TASK-113
   estimate: 2
   self_test: php artisan test --filter=CrossTenantHttpIsolationTest
+  notes: 'dummy_records: move the HTTP cross-tenant isolation test off DummyRecord onto real resources, then drop the dummy_records table.'
+TASK-124:
+  title: User deactivation and role change, revoking all of the user's tokens
+  spec: SPEC-001
+  requirement: REQ-050
+  status: todo
+  depends_on:
+  - TASK-130
+  self_test: php artisan test --filter=UserAccessRevocationTest
+  notes: 'TASK-102/103 found no route that deactivates a user, changes a role or revokes another user''s tokens; users has no status column; login (app/Http/Controllers/Auth/LoginController.php:41-53) checks neither user nor tenant status. Re-adds the POLICY-015 actions (assign, deactivate) when the routes exist.'
+TASK-139:
+  title: Add missing foreign keys (sales_returns.credit_note_id, users.employee_id) after an orphaned-rows check
+  spec: SPEC-019
+  requirement: NFR-005
+  status: todo
+  notes: 'KI-012. Additive migration only; report any orphaned rows to the owner before adding the constraint.'
+TASK-140:
+  title: 'Hotfix: stop returning the eTIMS cmcKey in any HTTP response; scrub secrets before persisting raw provider responses'
+  spec: SPEC-014
+  requirement: REQ-024
+  status: todo
+  self_test: php artisan test --filter=SecretsRedactionTest
+  notes: 'KI-004 (broader): EtimsController returns the whole EtimsSubmission (app/Http/Controllers/EtimsController.php:19) and response_payload keeps the plaintext cmcKey on success (app/Services/EtimsService.php:117). Verified by SEC-TEST-010 (tests/Security/SecretsRedactionTest.php); creates the Security testsuite in phpunit.xml if TASK-111 has not yet.'
 TASK-130:
   title: 'Token lifecycle: expiry, idle timeout, logout-everywhere, recovery codes, audited MFA reset, TOTP replay
     guard'
@@ -560,12 +598,11 @@ TASK-156:
   estimate: 1
   self_test: php artisan test --filter=MigrationSafetyLintTest
 TASK-157:
-  title: 'Observability: keep /health (liveness) and /ready (DB, queue, cache), add metrics export and alert rules
-    for error rate, latency, queue depth, dead letters'
   spec: SPEC-017
   requirement: NFR-003
   status: todo
   estimate: 3
+  title: 'Observability: keep /up (liveness, unauthenticated) and /api/ready (DB, queue, cache); /api/health is authenticated and not a liveness check; add metrics export and alert rules for error rate, latency, queue depth, dead letters'
 TASK-158:
   title: 'DPA tooling: employee anonymisation, tenant data export, tenant soft-delete with retention window'
   spec: SPEC-015
@@ -575,6 +612,7 @@ TASK-158:
   - TASK-135
   estimate: 4
   self_test: php artisan test --filter=DataSubjectRightsTest
+  notes: Re-adds the POLICY-009 anonymise action (removed from the matrix by TASK-103 until this task builds its route) as a maker-checker action.
 TASK-159:
   title: Choose Kenya/Africa hosting for DB, backups, object storage; record ADR
   spec: SPEC-017
@@ -641,6 +679,7 @@ TASK-180:
   - TASK-103
   estimate: 3
   self_test: php artisan test --filter=PurchaseOrderCancellationTest
+  notes: Re-adds the POLICY-006 cancel action (removed from the matrix by TASK-103 until this task builds the route).
 TASK-181:
   title: Subcontract and Progress Claim settle/dispute actions
   spec: SPEC-006
@@ -734,6 +773,7 @@ TASK-192:
   depends_on:
   - TASK-191
   estimate: 3
+  notes: 'Correct the User Manual role section to match the approved matrix (TASK-103): Finance cannot create parties or approve purchase orders; Sales cannot create invoices or initiate STK push; Procurement and Warehouse cannot view invoices.'
 TASK-193:
   title: 'Operational handoff: runbooks for the top 3 incident classes (M-Pesa settlement drift, queue/outbox backlog,
     database failover/restore), alerts wired, on-call contacts recorded'

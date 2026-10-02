@@ -11,7 +11,7 @@ This plan says **what order** the v1.1.0 work happens in and **what proves each 
   - TASK-194 independent security review;
   - TASK-195 production approval and verification;
   - TASK-196 rollback plans (ADR-009, ADR-010).
-- **`/health` is kept** as the liveness endpoint, because Forge's production smoke check calls it. TASK-157 no longer introduces `/live`.
+- **Liveness is `/up`** (Laravel's built-in, unauthenticated) and readiness is `/api/ready`. `/api/health` requires authentication and is not a liveness check (corrected under TASK-102/103; the Forge CLI does not hard-code `/health`). TASK-157 does not introduce `/live`.
 - **A draft brownfield baseline inventory and known-issue register** were added; TASK-102 completes them from the code.
 - **`forge_verified: false`** is set on every requirement with no automated check yet.
 - **TASK-104** uses `forge scaffold` and **never `--merge`** (it overwrites `.gitignore` and `.env.example`).
@@ -189,7 +189,7 @@ Gates are declared in `.forge/verification/dimensions.yaml` from day one. Each o
 | typecheck | Larastan level 6 against a committed baseline | TASK-110 |
 | contract | Export OpenAPI, validate every response | TASK-112 |
 | e2e | Playwright journeys against an app Forge boots itself | TASK-115 |
-| runtime | `GET /health` and `GET /ready` on a Forge-started process | TASK-115, TASK-157 |
+| runtime | `GET /up` and `GET /api/ready` on a Forge-started process | TASK-115, TASK-157 |
 | security | composer/npm audit, gitleaks, Security suite | TASK-111, TASK-113, grows to TASK-138 |
 | adversarial | ADV-001..010 | TASK-138 |
 | reliability | Resilience, reconciliation, tenant-context and idempotency-race tests | TASK-150..152, TASK-135 |
@@ -264,7 +264,7 @@ Outbox, circuit breakers, reconciliation, scheduler hardening, migration lint, o
 | TASK-152 | M-Pesa reconciliation job: STK Query for pending_external older than 3 minutes, expire after 24h | SPEC-011 / REQ-032 | TASK-133, TASK-150 | 1.5 | todo |
 | TASK-153 | Scheduler hardening: onOneServer, Redis lock store, runtime-budget overrun Notification | SPEC-014 / REQ-041 | — | 1.5 | todo |
 | TASK-156 | Migration lint: forbid drop/rename/type-change on financial tables | SPEC-019 / NFR-005 | TASK-105 | 1 | todo |
-| TASK-157 | Observability: keep /health (liveness) and /ready (DB, queue, cache), add metrics export and alert rules for error rate, latency, queue depth, dead letters | SPEC-017 / NFR-003 | — | 3 | todo |
+| TASK-157 | Observability: keep /up (liveness) and /api/ready (DB, queue, cache); /api/health is authenticated and not a liveness check; add metrics export and alert rules for error rate, latency, queue depth, dead letters | SPEC-017 / NFR-003 | — | 3 | todo |
 | TASK-158 | DPA tooling: employee anonymisation, tenant data export, tenant soft-delete with retention window | SPEC-015 / REQ-040 | TASK-135 | 4 | todo |
 | TASK-154 | WAL/PITR backups, monthly restore drill, reconcile-and-repost runbook exercised | SPEC-017 / NFR-002 | TASK-159 | 3 | todo |
 | TASK-155 | Migration rehearsal: messy simulated client OpeningBalanceBatch, twice, second from mid-run restore | SPEC-007 / REQ-012 | TASK-154 | 3 | todo |
@@ -363,7 +363,7 @@ forge verify --dimension security --profile production_approval
 forge release-check && forge advance                          # -> PRODUCTION_APPROVED
 
 # deploy to production (yours), then PRODUCTION_APPROVED -> PRODUCTION_DEPLOYED: human gate (see above)
-# smoke: GET /health, DB, auth, critical journey, error rate
+# smoke: GET /up, DB, auth, critical journey, error rate
 forge rc create --profile production
 forge verify --dimension runtime --profile production --environment production   # also e2e
 forge release-check && forge advance                          # -> PRODUCTION_VERIFIED (needs TASK-193 handoff)
@@ -435,7 +435,7 @@ _Outbox, circuit breakers, reconciliation, scheduler hardening, migration lint, 
 - **TASK-154** WAL/PITR backups, monthly restore drill, reconcile-and-repost runbook exercised (spec: SPEC-017, requirement: NFR-002, status: todo)
 - **TASK-155** Migration rehearsal: messy simulated client OpeningBalanceBatch, twice, second from mid-run restore (spec: SPEC-007, requirement: REQ-012, status: todo)
 - **TASK-156** Migration lint: forbid drop/rename/type-change on financial tables (spec: SPEC-019, requirement: NFR-005, status: todo)
-- **TASK-157** Observability: keep /health (liveness) and /ready (DB, queue, cache), add metrics export and alert rules for error rate, latency, queue depth, dead letters (spec: SPEC-017, requirement: NFR-003, status: todo)
+- **TASK-157** Observability: keep /up (liveness) and /api/ready (DB, queue, cache); /api/health is authenticated and not a liveness check; add metrics export and alert rules for error rate, latency, queue depth, dead letters (spec: SPEC-017, requirement: NFR-003, status: todo)
 - **TASK-158** DPA tooling: employee anonymisation, tenant data export, tenant soft-delete with retention window (spec: SPEC-015, requirement: REQ-040, status: todo)
 - **TASK-159** Choose Kenya/Africa hosting for DB, backups, object storage; record ADR (spec: SPEC-017, requirement: NFR-006, status: todo)
 

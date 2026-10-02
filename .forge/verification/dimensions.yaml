@@ -49,7 +49,7 @@ dimensions:
     command: "set -e; php artisan test --filter='IntegrationResilienceTest|MpesaReconciliationJobTest|TenantContextJobsTest|IdempotencyKeyConcurrencyTest|MpesaCallbackConcurrencyTest'"
     timeout_s: 1200
   runtime:
-    command: "set -e; curl -fsS http://127.0.0.1:8000/health; curl -fsS http://127.0.0.1:8000/ready"
+    command: "set -e; curl -fsS http://127.0.0.1:8000/up; curl -fsS http://127.0.0.1:8000/api/ready"
     timeout_s: 120
   adversarial:
     command: "set -e; php artisan test --testsuite=Security --group=adversarial"

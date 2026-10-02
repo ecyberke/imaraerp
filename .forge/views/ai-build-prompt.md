@@ -71,6 +71,7 @@ You are implementing this Forge-governed application.
 - REQ-045 (v1)
 - REQ-046 (v1)
 - REQ-047 (v1)
+- REQ-050 (v1)
 - SPEC-001 (v1)
 - SPEC-002 (v1)
 - SPEC-003 (v1)
@@ -131,6 +132,7 @@ You are implementing this Forge-governed application.
 - TASK-120 (v1)
 - TASK-121 (v1)
 - TASK-122 (v1)
+- TASK-124 (v1)
 - TASK-130 (v1)
 - TASK-131 (v1)
 - TASK-132 (v1)
@@ -140,6 +142,8 @@ You are implementing this Forge-governed application.
 - TASK-136 (v1)
 - TASK-137 (v1)
 - TASK-138 (v1)
+- TASK-139 (v1)
+- TASK-140 (v1)
 - TASK-150 (v1)
 - TASK-151 (v1)
 - TASK-152 (v1)
@@ -360,6 +364,7 @@ Each must end up linked to passing evidence in .forge/standards.yaml.
 1. TASK-120 — Architecture test: every money-bearing model has the audit observer; mass update/delete banned on them
 1. TASK-121 — Route sweep: every mutating route reachable by Finance/Admin carries the mfa middleware
 1. TASK-122 — Cross-tenant HTTP sweep over every resource route
+1. TASK-124 — User deactivation and role change, revoking all of the user's tokens
 1. TASK-130 — Token lifecycle: expiry, idle timeout, logout-everywhere, recovery codes, audited MFA reset, TOTP replay guard
 1. TASK-131 — Named rate limiters per tenant/user/operation class with 429 + Retry-After
 1. TASK-132 — Upload service: finfo sniffing, caps, PhpSpreadsheet hardening, private disk, UUID keys, signed URLs
@@ -369,6 +374,8 @@ Each must end up linked to passing evidence in .forge/standards.yaml.
 1. TASK-136 — PostgreSQL Row-Level Security on tenant tables (SET LOCAL app.tenant_id)
 1. TASK-137 — APP_KEY rotation via APP_PREVIOUS_KEYS + credential re-encrypt command; redact secrets in logs and retained raw responses
 1. TASK-138 — Security headers (HSTS, CSP, frame-ancestors), CORS per environment, adversarial suite ADV-001..009
+1. TASK-139 — Add missing foreign keys (sales_returns.credit_note_id, users.employee_id) after an orphaned-rows check
+1. TASK-140 — Hotfix: stop returning the eTIMS cmcKey in any HTTP response; scrub secrets before persisting raw provider responses
 1. TASK-150 — HTTP client policy: explicit timeouts, jittered backoff for idempotent calls only, circuit breakers per provider
 1. TASK-151 — Transactional outbox for every external side effect; dead-letter surfaced as Notification
 1. TASK-152 — M-Pesa reconciliation job: STK Query for pending_external older than 3 minutes, expire after 24h
@@ -376,7 +383,7 @@ Each must end up linked to passing evidence in .forge/standards.yaml.
 1. TASK-154 — WAL/PITR backups, monthly restore drill, reconcile-and-repost runbook exercised
 1. TASK-155 — Migration rehearsal: messy simulated client OpeningBalanceBatch, twice, second from mid-run restore
 1. TASK-156 — Migration lint: forbid drop/rename/type-change on financial tables
-1. TASK-157 — Observability: keep /health (liveness) and /ready (DB, queue, cache), add metrics export and alert rules for error rate, latency, queue depth, dead letters
+1. TASK-157 — Observability: keep /up (liveness, unauthenticated) and /api/ready (DB, queue, cache); /api/health is authenticated and not a liveness check; add metrics export and alert rules for error rate, latency, queue depth, dead letters
 1. TASK-158 — DPA tooling: employee anonymisation, tenant data export, tenant soft-delete with retention window
 1. TASK-159 — Choose Kenya/Africa hosting for DB, backups, object storage; record ADR
 1. TASK-170 — Volume seeder: 3-year mid-size contractor tenant (ASM-010 figures)

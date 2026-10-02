@@ -450,7 +450,7 @@ SEC-TEST-002:
     path: tests/Security/CrossTenantHttpIsolationTest.php
     runner: phpunit
 SEC-TEST-003:
-  purpose: Finance cannot read payslips or salary-bearing audit rows; HR can
+  purpose: Finance cannot read payslips or salary-bearing audit rows; HR Manager and Admin can read payslips through PayrollRunPolicy@view (ASM-007), and every payslip read writes an audit log entry
   verifies:
   - REQ-031
   - POLICY-004
@@ -544,6 +544,15 @@ SEC-TEST-013:
   implementation:
     type: security
     path: tests/Security/LedgerTamperTest.php
+    runner: phpunit
+SEC-TEST-014:
+  purpose: Deactivating a user or changing their role revokes all of that user's tokens immediately; a deactivated user cannot log in; only Admin can do it; the last Admin cannot be removed (planned, TASK-124)
+  verifies:
+  - REQ-050
+  - POLICY-015
+  implementation:
+    type: security
+    path: tests/Security/UserAccessRevocationTest.php
     runner: phpunit
 E2E-001:
   purpose: Lead to quotation to direct sale to delivery to invoice to payment

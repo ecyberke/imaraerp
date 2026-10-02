@@ -81,7 +81,7 @@ ARCH-001:
       specifications: [SPEC-012]
     - id: COMP-012
       name: Operations
-      responsibility: /health and /ready, metrics, alerting, PITR backups, restore drills, CI gates, self-audit, runbooks.
+      responsibility: /up and /api/ready, metrics, alerting, PITR backups, restore drills, CI gates, self-audit, runbooks.
       technology: GitHub Actions, PostgreSQL WAL archiving, structured JSON logs
       requirements: [NFR-002, NFR-003, NFR-004, NFR-005, NFR-006, NFR-007, NFR-008, NFR-009]
       specifications: [SPEC-017, SPEC-019]
@@ -103,7 +103,7 @@ ARCH-001:
     - "HTTPS JSON API /api/* (OpenAPI 3.1 generated, TASK-112), bearer token, idempotency-key header on financial mutations"
     - "Inbound webhook POST /api/webhooks/mpesa/stk/{request_token} (unauthenticated by necessity, ADR-002)"
     - "Outbound Daraja, eTIMS OSCU, TalkSasa via INT-001..003"
-    - "Health GET /health (liveness, used by Forge production smoke) and GET /ready (DB, queue, cache)"
+    - "Health GET /up (liveness, unauthenticated; used by the production smoke check) and GET /api/ready (DB, queue, cache). GET /api/health is authenticated and is not a liveness check"
   security:
     trust_boundaries:
       - Browser to API — every request authenticated, authorised per POLICY-*, validated by FormRequests at the boundary
@@ -159,7 +159,7 @@ ARCH-001:
       - "Daraja 429 or breaker open -> STK disabled with a clear message; invoices still payable by other methods"
       - "eTIMS down -> invoice raised locally, submission waits in outbox, dead-letter Notification after retries"
       - "TalkSasa down -> in-app notification already committed; SMS dead-letters"
-      - "Database unavailable -> /ready fails, load balancer drains, writes fail fast with 503"
+      - "Database unavailable -> /api/ready fails, load balancer drains, writes fail fast with 503"
       - "Queue worker crash mid-job -> job retried; idempotency keys and unique constraints prevent double effect"
       - "Scheduled job overrunning its interval -> withoutOverlapping/onOneServer skip plus overrun Notification"
     retries: >-

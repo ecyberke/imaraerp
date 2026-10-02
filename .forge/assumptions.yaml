@@ -3,23 +3,26 @@ ASM-001:
   decision: Declare risk_class R4 (financial ledger + payroll PII + payment collection + statutory tax). R3 is the minimum defensible class.
   basis: risk-classification.md lists "Financial / safety" as R4; Imara posts a double-entry ledger, runs Kenyan payroll and collects M-Pesa payments.
   confidence: medium
-  requires_confirmation: true
+  requires_confirmation: false
   created: '2026-10-01T15:00:00Z'
   blocks: [TASK-103]
+  resolution: ADR-001   # approved by Lavyd 2026-10-02 (TASK-103)
 ASM-002:
   decision: Sanctum tokens get an absolute expiry of 12h (30 days only with Remember me) plus a 60-minute idle timeout for Finance/Admin.
   basis: security-baseline requires expiry; v1.0 documents none. Values are a proposal, not a measured need.
   confidence: low
-  requires_confirmation: true
+  requires_confirmation: false
   created: '2026-10-01T15:00:00Z'
   blocks: [TASK-130]
+  resolution: ADR-005   # approved by Lavyd 2026-10-02 (TASK-103)
 ASM-003:
   decision: Treat Safaricom STK callbacks as untrusted claims and settle only after a Daraja STK Query confirms ResultCode 0, amount and phone; callback URL carries a per-request HMAC token; Safaricom egress IPs allow-listed.
   basis: Daraja does not sign callbacks, so webhooks module's "verify signature" rule cannot be met literally; architecture §1.1 promises HMAC+nonce which the provider cannot supply.
   confidence: medium
-  requires_confirmation: true
+  requires_confirmation: false
   created: '2026-10-01T15:00:00Z'
   blocks: [TASK-133]
+  resolution: ADR-002   # approved by Lavyd 2026-10-02 (TASK-103)
 ASM-004:
   decision: Record authentication.strategy as "session" because forge/project/v2 has no value for opaque DB-backed bearer tokens.
   basis: Schema enum limitation in Forge itself, not a property of Imara. Raise against Forge.
@@ -40,26 +43,29 @@ ASM-006:
   requires_confirmation: false
   created: '2026-10-01T15:00:00Z'
 ASM-007:
-  decision: Admin keeps tenant-scoped read on Payslip (architecture §11 "full access"); Finance is denied. If Admin should also be denied, POLICY-004 changes before SEC-TEST-003 is written.
-  basis: §11 says Admin has full access; §12.9 restricts only Finance. Least privilege argues for denying Admin too.
+  decision: Admin keeps tenant-scoped read on Payslip (architecture §11 "full access"), through PayrollRunPolicy@view (GET /api/payroll-runs/{id} loads the run's payslips); every payslip read is audit-logged. Finance is denied.
+  basis: §11 says Admin has full access; Imara-ERP-ARCHITECTURE.md:539 (§12 Open Decisions, item 9) restricts only Finance. Least privilege argued for denying Admin; the owner chose read access with every read audited.
   confidence: medium
-  requires_confirmation: true
+  requires_confirmation: false
   created: '2026-10-01T15:00:00Z'
   blocks: [TASK-114]
+  resolution: TASK-103   # approved by Lavyd 2026-10-02 (TASK-103)
 ASM-008:
   decision: Purchase Order cancellation allowed only from pending_approval/approved/ordered with zero received quantity; partially_received POs are short-closed (remaining lines cancelled, received lines stand). No ledger posting on cancel since nothing has been received.
   basis: Proposal to close the §14 gap; this is a financial-state decision so it needs the owner's confirmation.
   confidence: medium
-  requires_confirmation: true
+  requires_confirmation: false
   created: '2026-10-01T15:00:00Z'
   blocks: [TASK-180]
+  resolution: ADR-007   # approved by Lavyd 2026-10-02 (TASK-103)
 ASM-009:
   decision: Adopt PostgreSQL Row-Level Security (SET LOCAL app.tenant_id per transaction) as defense in depth behind TenantScope.
   basis: multi_tenant module asks for isolation "impossible by construction"; a global Eloquent scope is bypassable by raw queries, withoutGlobalScopes and context-less jobs.
   confidence: medium
-  requires_confirmation: true
+  requires_confirmation: false
   created: '2026-10-01T15:00:00Z'
   blocks: [TASK-136]
+  resolution: ADR-003   # approved by Lavyd 2026-10-02 (TASK-103)
 ASM-010:
   decision: Performance sizing for v1.1.0 load tests — 20 tenants, 25 concurrent users per tenant at peak, sustained 30 rps / burst 120 rps across the deployment, seeded tenant of 3 years for a mid-size contractor (~600k journal lines, ~250k stock_ledger rows).
   basis: Architecture §1.1 says "tens of concurrent users per tenant"; tenant count is not stated anywhere.
@@ -68,8 +74,8 @@ ASM-010:
   created: '2026-10-01T15:00:00Z'
   blocks: [TASK-173]
 ASM-011:
-  decision: Employee self-service payslip access (architecture §12.9) requires a tenth "employee" role, which v1.0 does not have; deferred until confirmed.
-  basis: §12.9 promises self-service; §11 and the User Manual list only nine roles.
+  decision: Employee self-service payslip access (Imara-ERP-ARCHITECTURE.md:539 (§12 Open Decisions, item 9)) requires a tenth "employee" role, which v1.0 does not have; deferred until confirmed.
+  basis: Imara-ERP-ARCHITECTURE.md:539 (§12 Open Decisions, item 9) promises self-service; §11 and the User Manual list only nine roles.
   confidence: high
   requires_confirmation: true
   created: '2026-10-01T15:00:00Z'

@@ -106,7 +106,7 @@ REQ-031:
   title: Payroll confidentiality — Finance never reads individual Payslips or salary-bearing audit entries
   priority: must
   forge_verified: false
-  notes: Resolved in architecture §12.9 but no test asserts it. See ASM-007, ASM-011.
+  notes: Resolved in Imara-ERP-ARCHITECTURE.md:539 (§12 Open Decisions, item 9) but no test asserts it. See ASM-007, ASM-011.
 REQ-032:
   title: M-Pesa settlement only on provider-confirmed status, with lost-callback reconciliation
   priority: must
@@ -176,6 +176,11 @@ REQ-047:
   priority: should
   forge_verified: false
   acceptance: [ACC-005]
+REQ-050:
+  title: User deactivation and role change, revoking all tokens
+  priority: must
+  forge_verified: false
+  notes: No such route in v1.0 (TASK-102/103 finding); built by TASK-124.
 # ---- non-functional ----
 NFR-001:
   title: Performance — p95 reads <300ms, writes <800ms, §10.1 reports <2s, SPA initial load <3s on Kenyan mobile
@@ -187,7 +192,7 @@ NFR-002:
   forge_verified: false
   acceptance: [ACC-001]
 NFR-003:
-  title: Observability — structured logs with correlation IDs, metrics, alerting, GET /health (liveness) and GET /ready (dependencies)
+  title: Observability — structured logs with correlation IDs, metrics, alerting, GET /up (liveness) and GET /api/ready (dependencies); GET /api/health is authenticated and not a liveness check
   priority: must
   forge_verified: false
 NFR-004:

@@ -21,6 +21,7 @@ PLAN-001:
       confidentiality, four new concurrency tests, audit coverage, MFA route sweep, cross-tenant sweep, contract tests, e2e journeys. Exit: build, typecheck,
       lint, unit, integration, contract, e2e green on CI; every POLICY-* and concurrency INV-* has a passing test.'
     tasks:
+    - TASK-140
     - TASK-110
     - TASK-111
     - TASK-112
@@ -39,15 +40,17 @@ PLAN-001:
       context for jobs, RLS (if ADR-003 approved), secret rotation and redaction, headers and adversarial suite. Exit: security and adversarial dimensions
       pass, 0 exploited.'
     tasks:
+    - TASK-135
     - TASK-130
+    - TASK-124
     - TASK-131
     - TASK-132
     - TASK-133
     - TASK-134
-    - TASK-135
     - TASK-136
     - TASK-137
     - TASK-138
+    - TASK-139
   - name: Phase 3 — Reliability and data protection
     goal: 'Outbox, circuit breakers, reconciliation, scheduler hardening, migration lint, observability, DPA tooling, hosting decision, restore drill and
       migration rehearsal. Exit: reliability and runtime dimensions pass; ACC-001, ACC-002, ACC-006 recorded via forge accept.'

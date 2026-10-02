@@ -1,8 +1,8 @@
 schema: forge/specs/v2
 SPEC-001:
   title: Identity, session and MFA
-  covers: [REQ-002, REQ-003, REQ-033]
-  responsibility: Sanctum bearer tokens, lockout, token revocation and expiry, TOTP enrolment, recovery codes, MFA middleware.
+  covers: [REQ-002, REQ-003, REQ-033, REQ-050]
+  responsibility: Sanctum bearer tokens, lockout, user deactivation and role change, token revocation and expiry, TOTP enrolment, recovery codes, MFA middleware.
   decisions: [ADR-005]
   stack_notes: config/sanctum.php expiration + prune-expired schedule; google2fa verifyKeyNewer for replay protection.
 SPEC-002:
@@ -80,7 +80,7 @@ SPEC-016:
 SPEC-017:
   title: Operations — recovery, observability, residency
   covers: [NFR-002, NFR-003, NFR-006]
-  responsibility: PITR backups, restore drills, metrics and alerts, /health and /ready, rollback plans, runbooks, hosting-region controls.
+  responsibility: PITR backups, restore drills, metrics and alerts, /up and /api/ready, rollback plans, runbooks, hosting-region controls.
 SPEC-018:
   title: Performance engineering
   covers: [NFR-001]
