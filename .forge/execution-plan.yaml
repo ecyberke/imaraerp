@@ -1,0 +1,106 @@
+schema: forge/execution-plan/v2
+PLAN-001:
+  title: Imara ERP v1.1.0 — land v1.0, make every gate real, harden, measure, complete, release
+  architecture: ARCH-001
+  phases:
+  - name: Phase 0 — Land v1.0 and establish the Forge baseline
+    goal: 'PRs #18 -> #19 -> #20 merged in order by a human (eTIMS behind a default-off flag), constitution and ADRs approved, baseline inventory and test
+      registry populated, README reproducible, CI running. Exit: forge validate exit 0 on main; workflow stage advanced to PLAN.'
+    tasks:
+    - TASK-019
+    - TASK-020
+    - TASK-022
+    - TASK-100
+    - TASK-021
+    - TASK-102
+    - TASK-103
+    - TASK-104
+    - TASK-105
+  - name: Phase 1 — Make the gates real
+    goal: 'Every R4 application-profile dimension has a command that can fail. Missing proofs added for existing behaviour: authorization matrix, payroll
+      confidentiality, four new concurrency tests, audit coverage, MFA route sweep, cross-tenant sweep, contract tests, e2e journeys. Exit: build, typecheck,
+      lint, unit, integration, contract, e2e green on CI; every POLICY-* and concurrency INV-* has a passing test.'
+    tasks:
+    - TASK-110
+    - TASK-111
+    - TASK-112
+    - TASK-113
+    - TASK-114
+    - TASK-115
+    - TASK-116
+    - TASK-117
+    - TASK-118
+    - TASK-119
+    - TASK-120
+    - TASK-121
+    - TASK-122
+  - name: Phase 2 — Security hardening
+    goal: 'Close the security gaps the new gates expose: token lifecycle, rate limits, upload pipeline, M-Pesa trust model, DB-level immutability, tenant
+      context for jobs, RLS (if ADR-003 approved), secret rotation and redaction, headers and adversarial suite. Exit: security and adversarial dimensions
+      pass, 0 exploited.'
+    tasks:
+    - TASK-130
+    - TASK-131
+    - TASK-132
+    - TASK-133
+    - TASK-134
+    - TASK-135
+    - TASK-136
+    - TASK-137
+    - TASK-138
+  - name: Phase 3 — Reliability and data protection
+    goal: 'Outbox, circuit breakers, reconciliation, scheduler hardening, migration lint, observability, DPA tooling, hosting decision, restore drill and
+      migration rehearsal. Exit: reliability and runtime dimensions pass; ACC-001, ACC-002, ACC-006 recorded via forge accept.'
+    tasks:
+    - TASK-159
+    - TASK-150
+    - TASK-151
+    - TASK-152
+    - TASK-153
+    - TASK-156
+    - TASK-157
+    - TASK-158
+    - TASK-154
+    - TASK-155
+  - name: Phase 4 — Performance and efficiency
+    goal: 'Measure, then fix: volume seeder, N+1 guards, index audit, load test against budgets, bundle budget, tenant-keyed report cache. Exit: performance
+      dimension passes at ASM-010 load.'
+    tasks:
+    - TASK-170
+    - TASK-171
+    - TASK-172
+    - TASK-175
+    - TASK-173
+    - TASK-174
+  - name: Phase 5 — Functional completion
+    goal: 'PO cancel/short-close, settle/dispute, module dashboards, accessibility. Blocked items (eTIMS submission, Daraja sandbox, employee self-service)
+      proceed only when their external blocker clears. Exit: accessibility dimension passes; blocked tasks either done or carried to v1.2.0 by a scoped
+      exception.'
+    tasks:
+    - TASK-180
+    - TASK-181
+    - TASK-182
+    - TASK-183
+    - TASK-184
+    - TASK-185
+    - TASK-186
+    - TASK-187
+  - name: Phase 6 — Verify, stage, approve and release v1.1.0
+    goal: 'Self-audit across 23 categories from real evidence; RC on the application profile -> VERIFIED; same artifact on staging -> STAGING_VERIFIED;
+      UAT, independent security review, rehearsed rollback plans and operational handoff; human sign-off -> PRODUCTION_APPROVED; deploy and smoke -> PRODUCTION_VERIFIED.
+      Exit: `forge release-check` exit 0 at each profile and maturity PRODUCTION_VERIFIED.'
+    tasks:
+    - TASK-190
+    - TASK-191
+    - TASK-192
+    - TASK-194
+    - TASK-196
+    - TASK-193
+    - TASK-195
+  notes: 'Baseline tasks TASK-001..018 are done and listed in no phase. Phases 2-4 can overlap once Phase 1 exits, but every task respects depends_on (forge
+    validate rejects out-of-order starts). Nothing merges autonomously: each task is a branch and PR reviewed by a human, as in v1.0. Tasks marked blocked
+    wait on external human actions (KRA OSCU registration, Daraja credentials, role decision) and never block the release by themselves — if still blocked
+    at Phase 6 they move to v1.2.0 via an RC-scoped exception with an expiry, never a project-scoped one (R4). Maturity for this brownfield baseline starts
+    at PLANNED. PLANNED -> SPECIFIED and SPECIFIED -> IMPLEMENTED are human gates in Forge (no profile): take the first when TASK-103 approves the constitution
+    and ADRs, the second when every non-blocked Phase 1-5 task is done. IMPLEMENTED -> VERIFIED, -> STAGING_VERIFIED, -> PRODUCTION_APPROVED and PRODUCTION_DEPLOYED -> PRODUCTION_VERIFIED are gate-enforced; PRODUCTION_APPROVED -> PRODUCTION_DEPLOYED is a third human gate. Human gates are passed by the owner editing state.yaml then running forge state reset-integrity, with the approval recorded in the commit message. R4 adds no
+    independent security review or enforced segregation of duties — TASK-194 supplies the first by hand.'

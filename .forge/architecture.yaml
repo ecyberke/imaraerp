@@ -1,0 +1,250 @@
+schema: forge/architecture/v2
+ARCH-001:
+  title: Imara ERP v1.1.0 — hardening and Forge-governed baseline of the v1.0 construction ERP
+  status: draft
+  source_requirements: [REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007, REQ-008, REQ-009, REQ-010, REQ-011, REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-021, REQ-022, REQ-023, REQ-024, REQ-031, REQ-032, REQ-033, REQ-034, REQ-035, REQ-036, REQ-037, REQ-038, REQ-039, REQ-040, REQ-041, REQ-042, REQ-043, REQ-044, REQ-045, REQ-046, REQ-047, NFR-001, NFR-002, NFR-003, NFR-004, NFR-005, NFR-006, NFR-007, NFR-008, NFR-009]
+  system_context: >-
+    Multi-tenant SaaS ERP for Kenyan construction contractors. A Vue 3 + Vuetify SPA (Materialize admin template)
+    talks to a Laravel 12 / PHP 8.2 JSON API over HTTPS with Sanctum opaque bearer tokens. PostgreSQL is the only
+    supported store and is load-bearing for correctness (SELECT ... FOR UPDATE, advisory locks, and from v1.1.0
+    triggers, deferred constraints and optional row-level security). A database queue and the Laravel scheduler run
+    asynchronous and recurring work. External parties are Safaricom Daraja (STK Push collection, inbound unsigned
+    callback), KRA eTIMS OSCU (tax device and invoice submission, outbound only), and TalkSasa (SMS). v1.1.0 adds no
+    new business domain; it makes the v1.0 domain (Imara-ERP-ARCHITECTURE.md v21, unchanged as the domain source of
+    truth) verifiable, closes security and reliability gaps, measures performance, and completes three functional holes.
+  components:
+    - id: COMP-001
+      name: SPA client
+      responsibility: Role-gated navigation (CASL, UX only), construction-language screens, disable-on-submit plus idempotency tokens on financial mutations.
+      technology: Vue 3.5, Vuetify 3, Pinia, unplugin-vue-router, Vite
+      requirements: [REQ-043, REQ-047, NFR-001]
+      specifications: [SPEC-020]
+    - id: COMP-002
+      name: API edge
+      responsibility: Routing, auth:sanctum, mfa middleware, named rate limiters, correlation IDs, idempotency middleware, security headers, CORS.
+      technology: Laravel 12 HTTP kernel
+      requirements: [REQ-002, REQ-003, REQ-023, REQ-033, REQ-034]
+      specifications: [SPEC-001, SPEC-016, SPEC-014]
+    - id: COMP-003
+      name: Authorization layer
+      responsibility: One Policy per entity family implementing the POLICY-* matrix; 404 for other-tenant and own_only misses.
+      technology: Laravel Policies and Gates
+      requirements: [REQ-004, REQ-005, REQ-031]
+      specifications: [SPEC-002]
+    - id: COMP-004
+      name: Tenancy kernel
+      responsibility: TenantScope, TenantContext (HTTP, queue, scheduler, console), tenant-keyed cache, optional RLS session variable, tenant lifecycle.
+      technology: Eloquent global scope, job middleware, PostgreSQL RLS
+      requirements: [REQ-001, REQ-037, REQ-040]
+      specifications: [SPEC-015]
+    - id: COMP-005
+      name: Ledger core
+      responsibility: Sole writer of journal entries; reversal-only; period auto-forward; document sequences; DB-enforced balance and immutability.
+      technology: LedgerPostingService, DocumentSequenceService, bcmath Money, PostgreSQL triggers
+      requirements: [REQ-006, REQ-007, REQ-036]
+      specifications: [SPEC-003]
+    - id: COMP-006
+      name: Business modules
+      responsibility: Master data, CRM/sales/BOQ, inventory, procurement, manufacturing, projects, labour, fixed assets, HR/payroll, billing, reports.
+      technology: Laravel services per module, posting only through COMP-005
+      requirements: [REQ-008, REQ-009, REQ-010, REQ-011, REQ-012, REQ-013, REQ-014, REQ-015, REQ-016, REQ-017, REQ-019, REQ-038, REQ-039, REQ-042, REQ-046]
+      specifications: [SPEC-005, SPEC-006, SPEC-007, SPEC-008, SPEC-009]
+    - id: COMP-007
+      name: Control plane
+      responsibility: Approval limits (maker-checker), notifications and digests, compliance documents, audit log.
+      technology: ApprovalLimitService, model observers with architecture-test coverage, Notification channels
+      requirements: [REQ-018, REQ-022]
+      specifications: [SPEC-010, SPEC-004]
+    - id: COMP-008
+      name: Integration runtime
+      responsibility: Encrypted per-tenant credentials, feature flags, HTTP client policy, circuit breakers, transactional outbox, dead-lettering.
+      technology: Laravel HTTP client, OutboxMessage table, database queue (Redis upgrade path)
+      requirements: [REQ-024, REQ-041, REQ-045]
+      specifications: [SPEC-014]
+    - id: COMP-009
+      name: Payment adapter (M-Pesa)
+      responsibility: STK initiation, callback intake as untrusted claim, STK Query confirmation, reconciliation job.
+      technology: Daraja REST via COMP-008
+      requirements: [REQ-020, REQ-032]
+      specifications: [SPEC-011]
+    - id: COMP-010
+      name: Tax adapter (eTIMS)
+      responsibility: Device init, code sync, outbox-driven submissions, per-tenant enablement.
+      technology: KRA OSCU REST via COMP-008
+      requirements: [REQ-021, REQ-044]
+      specifications: [SPEC-013]
+    - id: COMP-011
+      name: Upload pipeline
+      responsibility: Validate, sanitise and privately store BOQ imports and compliance documents; signed-URL download.
+      technology: finfo, PhpSpreadsheet (read-data-only), S3-compatible private bucket
+      requirements: [REQ-035]
+      specifications: [SPEC-012]
+    - id: COMP-012
+      name: Operations
+      responsibility: /health and /ready, metrics, alerting, PITR backups, restore drills, CI gates, self-audit, runbooks.
+      technology: GitHub Actions, PostgreSQL WAL archiving, structured JSON logs
+      requirements: [NFR-002, NFR-003, NFR-004, NFR-005, NFR-006, NFR-007, NFR-008, NFR-009]
+      specifications: [SPEC-017, SPEC-019]
+  data:
+    stores:
+      - PostgreSQL 16 (primary; WAL archived for PITR; Kenya/Africa region)
+      - S3-compatible private bucket with versioning and cross-zone replication in-region (uploads)
+      - Database queue tables jobs/failed_jobs plus outbox_messages
+      - Cache store (database in v1.0; Redis recommended once multi-instance, required for onOneServer locks)
+    entities:
+      - v1.0 entity model per Imara-ERP-ARCHITECTURE.md §3 (populated into domain.yaml by TASK-102)
+      - "New in v1.1.0: OutboxMessage, TenantFeatureFlag, DataSubjectRequest, MfaRecoveryCode"
+    flows:
+      - Every monetary mutation -> module service -> LedgerPostingService -> journal tables (same transaction) -> audit observer
+      - External side effect -> OutboxMessage written in the business transaction -> worker sends via circuit-broken client -> sent | retry | dead -> Notification
+      - STK request committed pending_external -> Daraja call -> callback recorded as claim -> STK Query -> Payment posted once
+      - Upload -> sniff and cap -> private storage (UUID key) -> staging rows -> human confirm -> live rows
+  interfaces:
+    - "HTTPS JSON API /api/* (OpenAPI 3.1 generated, TASK-112), bearer token, idempotency-key header on financial mutations"
+    - "Inbound webhook POST /api/webhooks/mpesa/stk/{request_token} (unauthenticated by necessity, ADR-002)"
+    - "Outbound Daraja, eTIMS OSCU, TalkSasa via INT-001..003"
+    - "Health GET /health (liveness, used by Forge production smoke) and GET /ready (DB, queue, cache)"
+  security:
+    trust_boundaries:
+      - Browser to API — every request authenticated, authorised per POLICY-*, validated by FormRequests at the boundary
+      - Daraja to webhook — unsigned public endpoint; payload is a claim to be confirmed (THR-002, THR-003)
+      - API to Daraja/eTIMS/TalkSasa responses — parsed defensively, schema-checked, secrets scrubbed before persistence (THR-011)
+      - File upload — untrusted binary content (THR-006)
+      - Queue and scheduler — code running without an HTTP user must carry an explicit tenant (THR-012)
+      - Support/ops access to the database — audited bastion only (THR-010)
+    authentication: >-
+      Sanctum opaque bearer tokens (pure bearer mode; statefulApi prohibited). Passwords bcrypt (Laravel default).
+      Login limited per IP and per account with lockout. v1.1.0 adds absolute token expiry, idle timeout for
+      Finance/Admin, logout-everywhere, TOTP replay protection, hashed one-time recovery codes and an audited,
+      maker-checker MFA reset (ADR-005, ASM-002). MFA stays mandatory for Finance/Admin on mutating routes and a
+      route sweep test proves no mutating route escapes the middleware.
+    authorization: >-
+      Server-side Policies are the only authority; CASL only shapes the UI. The matrix is declared once as
+      POLICY-001..015 in domain.yaml and SEC-TEST-001 is generated from it, covering allow, deny, other-tenant (404)
+      and unauthenticated (401) for every action. Payroll confidentiality (Finance never sees individual pay) and the
+      audit-log row filter are tested explicitly. Role logic stays hard-coded per §11; custom roles remain backlog.
+    secrets: >-
+      Platform secrets come from the host's secret store and are declared in contracts/environment.yaml. Provider
+      credentials are per tenant, encrypted with APP_KEY, masked on read and never logged. v1.1.0 adds APP_KEY rotation
+      (APP_PREVIOUS_KEYS plus a re-encrypt command), a Monolog redaction processor, scrubbing of retained raw provider
+      responses (the eTIMS communication key is currently stored in raw form) and gitleaks in CI.
+    input_validation: >-
+      FormRequest validation at the API edge for type, range, length and format; quantities reject zero/negative
+      except variation_type=omission; rates/amounts reject negatives; money accepted as decimal strings and converted
+      once to integer cents. Uploads are content-sniffed, size- and row-capped, macro-stripped, parsed with external
+      entities disabled; exported CSV/XLSX cells beginning with = + - @ are escaped.
+    data_protection: >-
+      TLS 1.2+ with HSTS; database and bucket encrypted at rest in a Kenya/Africa region (NFR-006); backups inherit the
+      same protection. Kenya DPA 2019 rights are implemented as DataSubjectRequest flows — employee PII anonymised in
+      place, payslip amounts retained for statutory record keeping, audit identity anonymised not deleted, tenant
+      export and soft-delete with a retention window (REQ-040).
+    dependency_risk: >-
+      composer.lock and package-lock.json committed; composer audit and npm audit fail the security gate on high or
+      critical. Named single-maintainer risk: pragmarx/google2fa (authentication path) and PhpSpreadsheet (untrusted
+      input path) — both pinned and on a monthly update cadence. The Materialize template's unused apps are removed
+      to shrink the attack and bundle surface.
+    abuse_rate_limiting: >-
+      Named limiters: login (5/min per account, 20/min per IP), api (120/min per user, 1,200/min per tenant),
+      reports/exports (10/min per user), uploads (20/hour per user), STK push (3/min per invoice). All return 429 with
+      Retry-After. Expensive reports beyond the p95 budget run as queued jobs with a completion Notification.
+    audit_logging: >-
+      Append-only AuditLog with actor, action, entity, old/new values, IP, correlation ID and timestamp on every
+      money-bearing model, auth event and role/MFA change. Coverage is enforced by an architecture test, not by
+      memory, and immutability by a PostgreSQL trigger. Salary-bearing rows are filtered from Finance.
+    threat_model_ref: [THR-001, THR-002, THR-003, THR-004, THR-005, THR-006, THR-007, THR-008, THR-009, THR-010, THR-011, THR-012, THR-013]
+  reliability:
+    failure_modes:
+      - "Daraja timeout/5xx on initiation -> request failed, no retry, user may resend (initiation is not idempotent)"
+      - "Daraja callback lost -> reconciliation job runs STK Query after 3 min, expires at 24 h"
+      - "Daraja 429 or breaker open -> STK disabled with a clear message; invoices still payable by other methods"
+      - "eTIMS down -> invoice raised locally, submission waits in outbox, dead-letter Notification after retries"
+      - "TalkSasa down -> in-app notification already committed; SMS dead-letters"
+      - "Database unavailable -> /ready fails, load balancer drains, writes fail fast with 503"
+      - "Queue worker crash mid-job -> job retried; idempotency keys and unique constraints prevent double effect"
+      - "Scheduled job overrunning its interval -> withoutOverlapping/onOneServer skip plus overrun Notification"
+    retries: >-
+      Only idempotent calls are retried: exponential backoff 1s, 2s, 4s with plus or minus 25% jitter, max 3 attempts,
+      total budget 30 s for request-path calls; outbox workers retry up to 6 times over about 1 hour, then dead-letter.
+      STK initiation is never auto-retried.
+    timeouts: >-
+      DB statement_timeout 5 s on request connections (30 s on report/queue connections); cache 500 ms; Daraja 10 s;
+      eTIMS 15 s; TalkSasa 30 s; upload processing 60 s (queued beyond that). Set explicitly on every client, never
+      left to library defaults.
+    idempotency: >-
+      Idempotency-Key header on every financial mutation with a unique (tenant, key) constraint and stored response;
+      provider events deduplicated by unique CheckoutRequestID and receipt number; outbox keyed per provider operation;
+      depreciation unique per asset and period.
+    concurrency: >-
+      Pessimistic row locks for credit checks, stock reservations, milestone sign-off, BOQ-line VO mutation and
+      document sequences; unique constraints for approvals, idempotency keys and M-Pesa receipts; optimistic version
+      check between DLP job and manual closure; advisory lock on the first reservation for an item. Every one is an
+      INV-* with a real-subprocess concurrency_test.
+    transactions: >-
+      Business change, its journal entry, its audit rows, its Notification record and any OutboxMessage commit in one
+      transaction. External calls happen only after commit via the outbox, except STK initiation, which commits
+      pending_external first and then calls out.
+    queues: >-
+      Database queue in v1.1.0 with failed_jobs as the dead-letter store surfaced as Notifications; every job carries
+      tenant_id and correlation_id and re-validates its subject at execution. Redis becomes required when more than one
+      app instance runs scheduled work (onOneServer needs a shared lock store).
+    graceful_degradation: >-
+      Integrations are non-critical to every core flow: invoicing, approvals, payroll and reporting never wait on
+      Daraja, eTIMS or SMS. Report generation over budget degrades to async with Notification.
+    recovery: >-
+      After any restore older than the newest posting, reconcile against external records (provider statements,
+      notification log, client records) and re-post lost entries dated at recovery time; never backdate or rewrite.
+      Exercised in the monthly drill (ACC-001) and the migration rehearsal (ACC-002).
+    backup_restore: >-
+      Continuous WAL archiving with point-in-time recovery (RPO 15 min), daily base backups retained 35 days, monthly
+      retained 12 months, encrypted, stored in a second in-region zone/provider; bucket versioning plus replication.
+      RTO 4 h for regional loss. Restore drilled monthly into scratch and logged.
+    migration_rollback: >-
+      Financial tables are additive-only (lint in CI). Every migration is expand/contract: add nullable, backfill in a
+      job, then constrain in a later release. Large-table indexes use CREATE INDEX CONCURRENTLY in a non-transactional
+      migration. Every migration ships a tested down() or a written forward-fix plan; restore-from-backup is never the
+      rollback plan.
+  scalability:
+    expected_load: >-
+      Proposed (ASM-010, requires confirmation): 20 tenants, 25 concurrent users per tenant at peak, 30 rps sustained
+      and 120 rps burst across the deployment; month-end and milestone days are the burst periods. A reference tenant
+      holds 3 years of a mid-size contractor (~600k journal lines, ~250k stock_ledger rows).
+    database_strategy: >-
+      Single PostgreSQL primary, shared schema with tenant_id on every tenant table. PgBouncer in transaction mode
+      (RLS uses SET LOCAL so it is pool-safe). App pool 20 connections per instance against max_connections 200,
+      leaving headroom for workers and the bastion. Read replica only when the availability board or reports need it.
+    indexes:
+      - "Every foreign key (asserted by TEST-040)"
+      - "(tenant_id, status) and (tenant_id, posting_date) on invoices, progress_claims, journal_lines"
+      - "(tenant_id, item_id, warehouse_id, created_at) on stock_ledger"
+      - "(tenant_id, account_id, posting_date) on journal_lines for GL and trial balance"
+      - "(status, next_attempt_at) on outbox_messages"
+      - "unique (tenant_id, entity_type, fiscal_year) on document_sequences"
+      - "unique (tenant_id, checkout_request_id) and (tenant_id, mpesa_receipt_number) on mpesa_stk_requests / payments"
+    caching: >-
+      Report results cached per tenant with keys prefixed tenant:{id}:report:{name}:{params-hash}, invalidated on any
+      posting to that tenant's ledger (event-driven), TTL 10 min as a safety net. No HTTP caching of API responses
+      (all private, Cache-Control no-store). Static SPA assets are content-hashed and cached immutably.
+    async_work: >-
+      Notification dispatch, all external calls (outbox), reports exceeding budget, BOQ parsing of large files,
+      depreciation, DLP scans, assignment status advance, reorder checks, M-Pesa reconciliation — all queued or
+      scheduled, each fanned out per tenant.
+    horizontal_scaling: >-
+      API instances are stateless (bearer tokens in DB, uploads in object storage, cache shared), so they scale
+      horizontally behind a load balancer. Scheduled jobs require onOneServer with a shared Redis lock before a second
+      instance is added.
+    bottlenecks:
+      - "DocumentSequence row lock serialises numbering per tenant/type — accepted at target load, first to revisit"
+      - "Stock reservation lock per item/warehouse on month-end bursts"
+      - "Computed availability over stock_ledger past ~5M rows per tenant (materialised view, REQ-046)"
+      - "Materialize full-version bundle size on Kenyan mobile networks"
+    performance_budgets: >-
+      p95 simple read 300 ms, p95 write including ledger posting 800 ms, p95 §10.1 report 2 s at reference volume,
+      error rate under 1%, SPA initial load under 3 s on throttled 4G (Lighthouse mobile), initial JS under 350 KB gzip.
+      Enforced by the performance dimension (k6 thresholds, query-count tests, EXPLAIN check, bundle check).
+  deployment:
+    environments:
+      - "ci — ephemeral PostgreSQL 16 service, all application-profile gates"
+      - "staging — separate origin and database, seeded reference tenant, Daraja/eTIMS sandboxes"
+      - "production — Kenya/Africa region (ASM-005), WAL/PITR, secret store, bastion-only DB access"
+      - "rollback — per environment in ADR-009 (staging) and ADR-010 (production): trigger, command, data handling, owner, rehearsal. Redeploy the previous artifact; expand/contract schema keeps it runnable; restore-from-backup is never the rollback path"
+  decisions: [ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009, ADR-010]

@@ -1,0 +1,218 @@
+schema: forge/requirements/v2
+# ---- v1.0 baseline (brownfield: existing behaviour IS the requirement) ----
+REQ-001:
+  title: Tenant provisioning with invited first admin, seeded roles, CoA, tax codes and sequences
+  priority: must
+  persona: platform operator
+  journeys: [JRN-007]
+  notes: Merged (platform-foundation). Invitations expire; accepted/expired/unknown tokens rejected.
+REQ-002:
+  title: Bearer-token login with lockout and token revocation on password change
+  priority: must
+  persona: any user
+  notes: Merged. Sanctum pure bearer mode; ->statefulApi() is prohibited.
+REQ-003:
+  title: TOTP MFA mandatory for Finance and Admin on every mutating route
+  priority: must
+  persona: finance, admin
+  journeys: [JRN-005]
+  notes: Merged. Enforced by the `mfa` route middleware alias.
+REQ-004:
+  title: Cross-tenant access is impossible and returns 404, never 403
+  priority: must
+  notes: Merged. Verified per module by one read test; not yet swept across every route (see SEC-TEST-002).
+REQ-005:
+  title: Nine-role RBAC enforced server-side by Laravel Policies; CASL is UX only
+  priority: must
+  forge_verified: false
+  notes: Only a handful of role-denial cases are tested in v1.0. No full matrix exists.
+REQ-006:
+  title: Double-entry ledger, integer cents, reversal-only corrections, closed-period auto-forward
+  priority: must
+  notes: Merged (ledger-core). 65 posting-rule tests.
+REQ-007:
+  title: Gap-free per-tenant document numbering resetting on the Kenyan tax year
+  priority: must
+  forge_verified: false
+  notes: Sequential behaviour tested; the row lock is never tested under real concurrency.
+REQ-008:
+  title: Master data — Party, Category, UoM, Item, BOM
+  priority: must
+REQ-009:
+  title: CRM, Quotation/Sales Order state machine, feasibility, delivery, BOQ with confirm-before-live import staging
+  priority: must
+  journeys: [JRN-001]
+REQ-010:
+  title: Inventory — physical-only stock ledger, quarantine and QC, locked check-and-reserve, valuation
+  priority: must
+REQ-011:
+  title: Procurement — PR, PO, GRN, landed cost, subcontracts and progress claims, supplier returns
+  priority: must
+  journeys: [JRN-002]
+REQ-012:
+  title: Billing and receivables — invoices, credit approval, retention, payments/allocations, WHT, write-offs, opening balances
+  priority: must
+  journeys: [JRN-001, JRN-003]
+  acceptance: [ACC-002, ACC-007]
+REQ-013:
+  title: Manufacturing — BOM-based production orders with wastage variance and QC
+  priority: must
+REQ-014:
+  title: Labour and plant resourcing with date-driven assignment status
+  priority: should
+REQ-015:
+  title: Projects — state machine, BOQ-allocated milestones, variation orders, defects gating retention
+  priority: must
+  journeys: [JRN-003]
+REQ-016:
+  title: Fixed assets and plant — depreciation, revaluation, disposal, internal charge-back, hire contracts
+  priority: must
+REQ-017:
+  title: Kenyan HR and payroll — PAYE, NSSF, SHIF, Housing Levy, P9A/P10, final settlement, casual conversion
+  priority: must
+  journeys: [JRN-004]
+REQ-018:
+  title: Maker-checker approval limits, notifications with digests, compliance documents gating progress claims
+  priority: must
+  notes: PENDING MERGE (PR #18).
+REQ-019:
+  title: Standard financial report set (§10.1) and module dashboards
+  priority: must
+REQ-020:
+  title: M-Pesa STK Push collection settling invoices through the real ledger path
+  priority: must
+  journeys: [JRN-006]
+  acceptance: [ACC-003]
+  forge_verified: false
+  notes: PENDING MERGE (PR #19). Never called Safaricom's sandbox — only a mocked HTTP layer.
+REQ-021:
+  title: KRA eTIMS OSCU device initialisation and item classification sync
+  priority: should
+  forge_verified: false
+  notes: PENDING MERGE (PR #20). Parsing tested against a guessed response shape only.
+REQ-022:
+  title: Append-only audit log on every financial entity with its own access policy
+  priority: must
+  forge_verified: false
+  notes: v1.0 doc claimed full coverage; Invoice, Payment, PO, VO and RetentionRelease lacked the observer until PR #18. Coverage is not mechanically enforced.
+REQ-023:
+  title: Idempotency keys on mutating routes and inbound webhooks
+  priority: must
+REQ-024:
+  title: Per-tenant third-party credentials encrypted at rest, masked on read, entered via Settings
+  priority: must
+# ---- v1.1.0 hardening and completion ----
+REQ-031:
+  title: Payroll confidentiality — Finance never reads individual Payslips or salary-bearing audit entries
+  priority: must
+  forge_verified: false
+  notes: Resolved in architecture §12.9 but no test asserts it. See ASM-007, ASM-011.
+REQ-032:
+  title: M-Pesa settlement only on provider-confirmed status, with lost-callback reconciliation
+  priority: must
+  forge_verified: false
+  journeys: [JRN-006]
+REQ-033:
+  title: Token lifecycle — expiry, idle timeout for privileged roles, logout-everywhere, MFA recovery codes, audited MFA reset, TOTP replay protection
+  priority: must
+  forge_verified: false
+REQ-034:
+  title: Abuse controls — per-tenant and per-user rate limits, tighter limits on reports/exports/uploads, 429 with Retry-After
+  priority: must
+  forge_verified: false
+REQ-035:
+  title: Secure file uploads — content-sniffed allowlist, size caps, macro/XXE/zip-bomb defence, private non-executable storage, random keys, signed URLs
+  priority: must
+  forge_verified: false
+REQ-036:
+  title: Database-enforced ledger and audit-log immutability and balanced journal entries
+  priority: must
+  forge_verified: false
+REQ-037:
+  title: Tenant isolation by construction — explicit tenant context in jobs/commands, tenant-scoped cache keys, scope-bypass lint, optional Postgres RLS
+  priority: must
+  forge_verified: false
+REQ-038:
+  title: Purchase Order cancellation and short-close
+  priority: should
+  forge_verified: false
+  notes: Closes §14 gap; Project.cancel() currently flags open POs it cannot resolve. ASM-008.
+REQ-039:
+  title: Subcontract and Progress Claim settle/dispute workflow
+  priority: could
+  forge_verified: false
+REQ-040:
+  title: Data subject rights under the Kenya DPA 2019 — employee anonymisation, tenant data export, tenant soft-delete lifecycle
+  priority: must
+  forge_verified: false
+REQ-041:
+  title: External-call resilience — timeouts, bounded backoff retries, circuit breakers, transactional outbox, dead-letter notification
+  priority: must
+  forge_verified: false
+REQ-042:
+  title: Dashboards for Manufacturing, Labour, Projects, Fixed Assets and HR
+  priority: should
+  forge_verified: false
+REQ-043:
+  title: WCAG 2.1 AA on core journeys
+  priority: should
+  forge_verified: false
+REQ-044:
+  title: eTIMS sales invoice, credit note and item registration submission
+  priority: must
+  forge_verified: false
+  acceptance: [ACC-004]
+  notes: Blocked on KRA sandbox registration (human action, director PIN + OTP).
+REQ-045:
+  title: Per-tenant feature flags gating every external integration
+  priority: must
+  forge_verified: false
+REQ-046:
+  title: Live inventory availability board over a materialised view
+  priority: could
+  forge_verified: false
+REQ-047:
+  title: Client UAT sign-off and onboarding material for daily workflows
+  priority: should
+  forge_verified: false
+  acceptance: [ACC-005]
+# ---- non-functional ----
+NFR-001:
+  title: Performance — p95 reads <300ms, writes <800ms, §10.1 reports <2s, SPA initial load <3s on Kenyan mobile
+  priority: must
+  forge_verified: false
+NFR-002:
+  title: Recovery — RPO 15 min via WAL/PITR, RTO 4 h, monthly restore drill with reconcile-and-repost
+  priority: must
+  forge_verified: false
+  acceptance: [ACC-001]
+NFR-003:
+  title: Observability — structured logs with correlation IDs, metrics, alerting, GET /health (liveness) and GET /ready (dependencies)
+  priority: must
+  forge_verified: false
+NFR-004:
+  title: Supply-chain and static security hygiene — dependency audits, Larastan, secret scanning, security headers, independent pre-production security review
+  priority: must
+  forge_verified: false
+  acceptance: [ACC-008]
+NFR-005:
+  title: Migration safety — additive-only on financial tables, enforced in CI
+  priority: must
+  forge_verified: false
+NFR-006:
+  title: Data residency in Kenya/Africa for database, backups and object storage
+  priority: must
+  forge_verified: false
+  acceptance: [ACC-006]
+NFR-007:
+  title: Reproducible clean-room setup and CI that runs every required gate
+  priority: must
+  forge_verified: false
+NFR-008:
+  title: OpenAPI contract for every /api route with response contract tests
+  priority: must
+  forge_verified: false
+NFR-009:
+  title: Test-suite hygiene — no scaffold tests counted as coverage; exact integer-cent assertions
+  priority: should
+  forge_verified: false

@@ -1,0 +1,607 @@
+schema: forge/ai-prompt/v2
+PROMPT-001:
+  derived_from:
+    REQ-001:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-002:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-003:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-004:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-005:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-006:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-007:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-008:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-009:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-010:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-011:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-012:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-013:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-014:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-015:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-016:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-017:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-018:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-019:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-020:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-021:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-022:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-023:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-024:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-031:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-032:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-033:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-034:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-035:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-036:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-037:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-038:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-039:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-040:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-041:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-042:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-043:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-044:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-045:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-046:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    REQ-047:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    NFR-001:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    NFR-002:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    NFR-003:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    NFR-004:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    NFR-005:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    NFR-006:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    NFR-007:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    NFR-008:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    NFR-009:
+      version: 1
+      hash: sha256:75ec8ed3ad0ecbe06443e1541e73ca94f9c36fb0905b5531d5a4c807cf0fab22
+    SPEC-001:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-002:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-003:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-004:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-005:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-006:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-007:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-008:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-009:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-010:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-011:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-012:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-013:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-014:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-015:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-016:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-017:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-018:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-019:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    SPEC-020:
+      version: 1
+      hash: sha256:ed28270a34e45c6ce12c09675649b71a76f11486a6b14f494f49f37529a2b09c
+    TASK-001:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-002:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-003:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-004:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-005:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-006:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-007:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-008:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-009:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-010:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-011:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-012:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-013:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-014:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-015:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-016:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-017:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-018:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-019:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-020:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-021:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-022:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-100:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-102:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-103:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-104:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-105:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-110:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-111:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-112:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-113:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-114:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-115:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-116:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-117:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-118:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-119:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-120:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-121:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-122:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-130:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-131:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-132:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-133:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-134:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-135:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-136:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-137:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-138:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-150:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-151:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-152:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-153:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-154:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-155:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-156:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-157:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-158:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-159:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-170:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-171:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-172:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-173:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-174:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-175:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-180:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-181:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-182:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-183:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-184:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-185:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-186:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-187:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-190:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-191:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-192:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-193:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-194:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-196:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    TASK-195:
+      version: 1
+      hash: sha256:f15f0eee514074b24c21ade9d38595c68ecee6792e3939a8ad3c6e70c443ff8d
+    INV-001:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-002:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-003:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-004:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-005:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-006:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-007:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-008:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-009:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-010:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-011:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-012:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-013:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-014:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-015:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-016:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    INV-017:
+      version: 1
+      hash: sha256:e22d96c916013081bd71cfbfdb812b03d204c35b4a9ca596eb5a6bb28b0d0533
+    ARCH-001:
+      version: 1
+      hash: sha256:ec78bfc69aea25148b5f22635c154d5b922216778baf85afe5ae5148be277f7e
+  rules:
+  - Do not modify tests to make them pass.
+  - Do not change requirements silently — propose the change and get it recorded first.
+  - Do not change architecture without an ADR that supersedes the relevant entry.
+  - Do not bypass security, performance, or reliability requirements.
+  - Do not bypass approval gates.
+  - Do not claim verification without evidence in `.forge/evidence/`.
+  - Follow the declared design system (`.forge/design-system.md`) for any UI work.
+  - Run the required verification dimensions before claiming a task done.
+  - Create a new RC after any source change — do not reuse a stale one.
+  implementation_order:
+  - TASK-001
+  - TASK-002
+  - TASK-003
+  - TASK-004
+  - TASK-005
+  - TASK-006
+  - TASK-007
+  - TASK-008
+  - TASK-009
+  - TASK-010
+  - TASK-011
+  - TASK-012
+  - TASK-013
+  - TASK-014
+  - TASK-015
+  - TASK-016
+  - TASK-017
+  - TASK-018
+  - TASK-019
+  - TASK-020
+  - TASK-021
+  - TASK-022
+  - TASK-100
+  - TASK-102
+  - TASK-103
+  - TASK-104
+  - TASK-105
+  - TASK-110
+  - TASK-111
+  - TASK-112
+  - TASK-113
+  - TASK-114
+  - TASK-115
+  - TASK-116
+  - TASK-117
+  - TASK-118
+  - TASK-119
+  - TASK-120
+  - TASK-121
+  - TASK-122
+  - TASK-130
+  - TASK-131
+  - TASK-132
+  - TASK-133
+  - TASK-134
+  - TASK-135
+  - TASK-136
+  - TASK-137
+  - TASK-138
+  - TASK-150
+  - TASK-151
+  - TASK-152
+  - TASK-153
+  - TASK-154
+  - TASK-155
+  - TASK-156
+  - TASK-157
+  - TASK-158
+  - TASK-159
+  - TASK-170
+  - TASK-171
+  - TASK-172
+  - TASK-173
+  - TASK-174
+  - TASK-175
+  - TASK-180
+  - TASK-181
+  - TASK-182
+  - TASK-183
+  - TASK-184
+  - TASK-185
+  - TASK-186
+  - TASK-187
+  - TASK-190
+  - TASK-191
+  - TASK-192
+  - TASK-193
+  - TASK-194
+  - TASK-195
+  - TASK-196
+  on_complete:
+  - Run tests.
+  - Run security.
+  - Run performance.
+  - Run reliability.
+  - Run adversarial checks.
+  - Run self-audit.
+  - Produce evidence.
+  - Do not report production-ready unless the release gates pass.

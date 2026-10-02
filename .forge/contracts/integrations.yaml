@@ -1,0 +1,34 @@
+schema: forge/contracts/integrations/v2
+INT-001:
+  provider: safaricom-daraja
+  purpose: STK Push collection against invoices (per-tenant credentials)
+  endpoints: ["POST /oauth/v1/generate", "POST /mpesa/stkpush/v1/processrequest", "POST /mpesa/stkpushquery/v1/query"]
+  timeout_ms: 10000
+  retries: 0
+  idempotency: "STK initiation is NOT retried (not idempotent); pending_external row committed before the call; STK Query is retried with backoff (2 attempts)"
+  webhook:
+    path: /api/webhooks/mpesa/stk/{request_token}
+    signature_header: none (Daraja does not sign callbacks)
+    verification: "Compensating controls per ADR-002 — HMAC-SHA256 per-request token in path, Safaricom egress IP allowlist, CheckoutRequestID must match a pending_external row, settlement only after STK Query confirms ResultCode 0, amount and MSISDN"
+  failure_modes: [timeout, 5xx, '429', malformed, unavailable, response_lost]
+  fallback: "Initiation failure -> request marked failed, user retries manually; lost callback -> reconciliation job queries status after 3 min; breaker open -> STK button disabled with message"
+  monitoring: "Alert when >5% of STK requests in 15 min end expired or failed, or breaker opens"
+INT-002:
+  provider: kra-etims-oscu
+  purpose: Device init, code sync, sales/credit-note/item submission
+  endpoints: ["selectInitOsdcInfo", "selectCodes", "saveTrnsSalesOsdc", "saveItem"]
+  timeout_ms: 15000
+  retries: 3
+  idempotency: "Submissions keyed by tenant + invoice number in OutboxMessage; resubmission of an accepted invoice is a no-op"
+  failure_modes: [timeout, 5xx, malformed, unavailable, response_lost]
+  fallback: "Invoice is raised locally first; submission queued in outbox; dead-letter raises Notification to Finance and Admin"
+  monitoring: "Alert on any dead-lettered submission and on outbox age > 1h"
+INT-003:
+  provider: talksasa-sms
+  purpose: Notification dispatch (SMS); later inbound structured-SMS for site supervisors
+  timeout_ms: 30000
+  retries: 3
+  idempotency: "OutboxMessage key = notification id"
+  failure_modes: [timeout, 5xx, '429', unavailable]
+  fallback: "Notification record already committed in-app; SMS dispatch best-effort, dead-letter after retries"
+  monitoring: "Alert when delivery failure rate > 10% over 1h"

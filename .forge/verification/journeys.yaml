@@ -1,0 +1,61 @@
+schema: forge/verification/journeys/v2
+JRN-001:
+  name: Direct sale, lead to cash
+  actor: sales
+  steps: [create lead, convert to quotation, pass feasibility, confirm direct-sale order (stock reserved), deliver, raise invoice, record payment]
+  expected: Invoice settled, stock issued, COGS and revenue posted, trial balance nets to zero
+  failure_conditions: [insufficient stock, credit limit exceeded without override, feasibility rejected]
+  requirements: [REQ-009, REQ-012]
+  e2e: [E2E-001]
+  permissions: [sales, finance]
+JRN-002:
+  name: Procure to stock
+  actor: procurement
+  steps: [raise requisition, create PO, approve (second approver above threshold), receive GRN at site, pass QC, view availability]
+  expected: Stock available only after QC pass; AP and inventory posted
+  failure_conditions: [same-user second approval, QC failure]
+  requirements: [REQ-011]
+  e2e: [E2E-002]
+  permissions: [procurement, site_supervisor, warehouse]
+JRN-003:
+  name: Project billing from BOQ with retention
+  actor: project_manager
+  steps: [allocate BOQ section to milestone, sign off milestone, bill from BOQ, log blocking defect, attempt retention release, resolve defect, release]
+  expected: Retention release blocked until defect verified; billing derived from BOQ allocation
+  requirements: [REQ-015, REQ-012]
+  e2e: [E2E-003]
+  permissions: [project_manager, site_supervisor, finance]
+JRN-004:
+  name: Monthly payroll
+  actor: hr_manager
+  steps: [approve timesheets, generate payroll run, approve, disburse, record statutory remittance]
+  expected: Every payroll payable nets to zero; Finance sees only aggregate journal lines
+  requirements: [REQ-017]
+  e2e: [E2E-004]
+  permissions: [hr_manager]
+JRN-005:
+  name: MFA enrolment before a financial action
+  actor: finance
+  steps: [log in, attempt credit approval (blocked), enrol TOTP, save recovery codes, approve credit]
+  expected: Action blocked before enrolment and allowed after
+  requirements: [REQ-003]
+  e2e: [E2E-005]
+  permissions: [finance]
+JRN-006:
+  name: M-Pesa STK collection
+  actor: finance
+  steps: [open invoice, send STK push, customer approves on stub, callback arrives, STK Query confirms, invoice settles]
+  expected: Exactly one Payment; invoice settled only after provider confirmation
+  failure_conditions: [customer cancels, callback lost (reconciliation settles), amount mismatch]
+  requirements: [REQ-020, REQ-032]
+  e2e: [E2E-006]
+  permissions: [finance, sales]
+  external_systems: [safaricom-daraja (stubbed)]
+JRN-007:
+  name: Tenant onboarding
+  actor: admin
+  steps: [operator provisions tenant, admin accepts invitation, sets password, enrols MFA, completes getting-started checklist, invites users]
+  expected: Tenant has seeded roles, chart of accounts, warehouses and sequences
+  requirements: [REQ-001]
+  e2e: [E2E-007]
+  permissions: [admin]

@@ -1,0 +1,24 @@
+schema: forge/state/v2
+project:
+  name: imara-erp
+  mode: brownfield
+  created: '2026-10-02T15:50:44Z'
+execution:
+  repository: https://github.com/ecyberke/imaraerp.git
+  branch: main
+  commit: eeb528c35c123bbfd9e0a64191196f6c45c25cc2
+  dirty: true
+  runtime: ''
+  package_manager: pnpm
+  os: ''
+workflow:
+  stage: BUILD
+  entered: '2026-10-02T15:55:28Z'
+maturity:
+  state: PLANNED
+  modifiers: []
+  since: '2026-10-02T15:50:44Z'
+last_validation:
+  at: '2026-10-02T15:50:44Z'
+  status: not_run
+repair_sessions: []

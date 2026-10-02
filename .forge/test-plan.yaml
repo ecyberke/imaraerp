@@ -1,0 +1,25 @@
+schema: forge/test-plan/v2
+TESTPLAN-001:
+  source_requirements: [REQ-001, REQ-002, REQ-003, REQ-004, REQ-005, REQ-006, REQ-007, REQ-008, REQ-009, REQ-010, REQ-011, REQ-012, REQ-013, REQ-015, REQ-016, REQ-017, REQ-018, REQ-019, REQ-020, REQ-022, REQ-023, REQ-024, REQ-031, REQ-032, REQ-033, REQ-034, REQ-035, REQ-036, REQ-037, REQ-040, REQ-041, REQ-044, REQ-045, NFR-001, NFR-002, NFR-003, NFR-004, NFR-005, NFR-006, NFR-007, NFR-008]
+  categories:
+    - name: unit
+      tests: [TEST-006, TEST-036, TEST-038, TEST-051]
+    - name: integration
+      tests: [TEST-001, TEST-002, TEST-003, TEST-004, TEST-005, TEST-007, TEST-008, TEST-009, TEST-010, TEST-011, TEST-012, TEST-013, TEST-014, TEST-015, TEST-016, TEST-017, TEST-018, TEST-019, TEST-020, TEST-021, TEST-022, TEST-023, TEST-024, TEST-025, TEST-026, TEST-030, TEST-031, TEST-032, TEST-033, TEST-034, TEST-035, TEST-037, TEST-042, TEST-043, TEST-044, TEST-045, TEST-046, TEST-048, TEST-049, TEST-050]
+    - name: contract
+      tests: [TEST-041]
+    - name: e2e
+      tests: [E2E-001, E2E-002, E2E-003, E2E-004, E2E-005, E2E-006, E2E-007, E2E-008]
+    - name: security
+      tests: [SEC-TEST-001, SEC-TEST-002, SEC-TEST-003, SEC-TEST-004, SEC-TEST-005, SEC-TEST-006, SEC-TEST-007, SEC-TEST-008, SEC-TEST-009, SEC-TEST-010, SEC-TEST-011, SEC-TEST-012, SEC-TEST-013]
+    - name: performance
+      tests: [TEST-039, TEST-040, TEST-052]
+    - name: migration
+      tests: [TEST-038]
+    - name: adversarial
+      tests: [ADV-001, ADV-002, ADV-003, ADV-004, ADV-005, ADV-006, ADV-007, ADV-008, ADV-009, ADV-010]
+    - name: recovery
+      tests: [TEST-053]
+  exceptions:
+    - requirement: NFR-006
+      reason: Residency is a hosting fact, verified by manual acceptance ACC-006, not by an automated test.

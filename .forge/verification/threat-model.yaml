@@ -1,0 +1,105 @@
+schema: forge/verification/threat-model/v2
+THR-001:
+  asset: Every tenant's records
+  threat: Cross-tenant IDOR via a guessed or enumerated numeric ID
+  vector: Any /api/{resource}/{id} route, or a query that bypasses TenantScope
+  likelihood: medium
+  impact: critical
+  mitigation: [TenantScope global scope, Policy tenant check returning 404, TenantContext in jobs, Postgres RLS (ADR-003)]
+  verification: [SEC-TEST-002, SEC-TEST-001, TEST-037]
+THR-002:
+  asset: Invoices and cash ledger
+  threat: Forged Daraja callback marks an invoice paid
+  vector: POST /api/webhooks/mpesa/stk/{opaque}
+  likelihood: medium
+  impact: critical
+  mitigation: [per-request HMAC callback token, Safaricom IP allowlist, settle only after STK Query confirms amount and phone, CheckoutRequestID must match a pending_external row]
+  verification: [SEC-TEST-008]
+THR-003:
+  asset: Cash ledger
+  threat: Replayed or parallel duplicate callback creates a second Payment
+  vector: Daraja retry or attacker replay
+  likelihood: high
+  impact: high
+  mitigation: [unique constraints on CheckoutRequestID and receipt number, idempotent state transition, row lock on the STK request]
+  verification: [TEST-033, TEST-025]
+THR-004:
+  asset: User accounts
+  threat: Credential stuffing and password spraying
+  vector: POST /api/auth/login
+  likelihood: high
+  impact: high
+  mitigation: [per-IP and per-account rate limits, lockout, MFA for Finance/Admin]
+  verification: [SEC-TEST-005, TEST-003]
+THR-005:
+  asset: Bearer tokens
+  threat: Stolen token remains valid indefinitely
+  vector: XSS, shared device, leaked log
+  likelihood: medium
+  impact: high
+  mitigation: [absolute expiry, idle timeout for privileged roles, logout-everywhere, revocation on password change and termination, CSP]
+  verification: [SEC-TEST-004, SEC-TEST-011]
+THR-006:
+  asset: Application server and BOQ figures
+  threat: Malicious spreadsheet (macro, XXE, zip bomb, CSV formula injection on re-export)
+  vector: BOQ import and compliance document upload
+  likelihood: medium
+  impact: high
+  mitigation: [content sniffing allowlist, size and row caps, PhpSpreadsheet read-data-only with entity loading off, private disk, formula-prefix escaping on export]
+  verification: [SEC-TEST-007]
+THR-007:
+  asset: Approval controls
+  threat: One person satisfies both approval stages by holding two roles or using two sessions
+  vector: Approval endpoints
+  likelihood: medium
+  impact: high
+  mitigation: [same-user check, unique decision per stage, row lock]
+  verification: [SEC-TEST-009, TEST-031]
+THR-008:
+  asset: Role assignments
+  threat: Privilege escalation by a non-admin, or tenant lock-out by removing the last admin
+  vector: User and role management routes
+  likelihood: low
+  impact: high
+  mitigation: [POLICY-015, last-admin guard, audit of role changes]
+  verification: [SEC-TEST-001, TEST-045]
+THR-009:
+  asset: Salary data
+  threat: Finance or another role reads individual pay through Payslip or AuditLog old/new values
+  vector: Payslip routes, audit-log browser, report exports
+  likelihood: medium
+  impact: critical
+  mitigation: [POLICY-004, POLICY-005 row filter, aggregate-only payroll journal lines]
+  verification: [SEC-TEST-003]
+THR-010:
+  asset: General ledger
+  threat: Silent edit of posted entries through mass update, raw SQL or a support DB session
+  vector: Application code paths that skip observers; direct DB access
+  likelihood: low
+  impact: critical
+  mitigation: [immutability triggers, deferred balance constraint, audited bastion access, architecture test banning mass updates]
+  verification: [TEST-035, SEC-TEST-013, TEST-036]
+THR-011:
+  asset: Integration credentials (Daraja consumer secret and passkey, eTIMS cmcKey)
+  threat: Secrets leak through logs, error pages or retained raw provider responses
+  vector: Logging, raw_response columns, exception reporting
+  likelihood: medium
+  impact: high
+  mitigation: [redaction processor on the log channel, scrub before persisting raw responses, masked API reads, APP_KEY rotation procedure]
+  verification: [SEC-TEST-010]
+THR-012:
+  asset: Every tenant's records
+  threat: Scheduled job or queued job runs without tenant context and reads or writes across tenants
+  vector: Depreciation, DLP scan, assignment status, reorder checks, digests
+  likelihood: medium
+  impact: critical
+  mitigation: [TenantContext required for tenant-scoped queries outside HTTP, per-tenant job fan-out, RLS]
+  verification: [TEST-037, SEC-TEST-002]
+THR-013:
+  asset: Service availability
+  threat: Expensive report or export endpoints exhaust workers
+  vector: Reports, exports, BOQ upload
+  likelihood: medium
+  impact: medium
+  mitigation: [operation-class limiters, async report jobs past budget, request body caps]
+  verification: [SEC-TEST-006, TEST-052]

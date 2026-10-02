@@ -1,0 +1,62 @@
+schema: forge/verification/adversarial/v2
+ADV-001:
+  description: Authenticated tenant-A user requests tenant-B records by ID across every resource route
+  verifies: [THR-001, POLICY-002, POLICY-006]
+  command: php artisan test --filter=CrossTenantHttpIsolationTest
+  test_id: SEC-TEST-002
+  timeout_s: 900
+  expected: { exit_code: 0 }
+ADV-002:
+  description: Forged STK callbacks — wrong token, foreign IP, unknown CheckoutRequestID, amount mismatch
+  verifies: [THR-002, POLICY-003]
+  command: php artisan test --filter=MpesaCallbackTrustTest
+  test_id: SEC-TEST-008
+  expected: { exit_code: 0 }
+ADV-003:
+  description: Parallel replay of one successful callback while reconciliation runs
+  verifies: [THR-003, INV-010]
+  command: php artisan test --filter=MpesaCallbackConcurrencyTest
+  test_id: TEST-033
+  expected: { exit_code: 0 }
+ADV-004:
+  description: One user holding two roles approves both stages from two sessions
+  verifies: [THR-007, INV-009]
+  command: php artisan test --filter=MakerCheckerBypassTest
+  test_id: SEC-TEST-009
+  expected: { exit_code: 0 }
+ADV-005:
+  description: Malicious workbooks — macro, XXE, zip bomb, formula injection, traversal filename
+  verifies: [THR-006]
+  command: php artisan test --filter=UploadSecurityTest
+  test_id: SEC-TEST-007
+  expected: { exit_code: 0 }
+ADV-006:
+  description: Raw SQL UPDATE of a posted journal line and an audit row from the application role
+  verifies: [THR-010, INV-002]
+  command: php artisan test --filter=LedgerTamperTest
+  test_id: SEC-TEST-013
+  expected: { exit_code: 0 }
+ADV-007:
+  description: Non-admin assigns Admin role; admin removes the last admin
+  verifies: [THR-008, POLICY-015]
+  command: php artisan test --filter=AuthorizationMatrixTest
+  test_id: SEC-TEST-001
+  expected: { exit_code: 0 }
+ADV-008:
+  description: Trigger provider errors and grep logs and stored raw responses for credential material
+  verifies: [THR-011]
+  command: php artisan test --filter=SecretsRedactionTest
+  test_id: SEC-TEST-010
+  expected: { exit_code: 0 }
+ADV-009:
+  description: Finance browses audit log and exports for a payroll run to recover individual salaries
+  verifies: [THR-009, POLICY-004, POLICY-005]
+  command: php artisan test --filter=PayrollConfidentialityTest
+  test_id: SEC-TEST-003
+  expected: { exit_code: 0 }
+ADV-010:
+  description: Dispatch every scheduled command with no TenantContext and with a forged one
+  verifies: [THR-012, INV-017]
+  command: php artisan test --filter=TenantContextJobsTest
+  test_id: TEST-037
+  expected: { exit_code: 0 }

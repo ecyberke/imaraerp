@@ -1,0 +1,14 @@
+schema: forge/runtime/v2
+start_command: "php artisan serve --host=127.0.0.1 --port=8000"
+readiness_url: "http://127.0.0.1:8000/api/ready"   # route:list (TASK-102): GET api/ready, routes/api.php:102
+readiness_timeout_s: 60
+persistence:
+  write_probe: "php artisan forge:probe write"
+  read_probe: "php artisan forge:probe read | grep -q forge-persistence-ok"
+clean_room:
+  setup_commands:
+    - "composer install --no-interaction --prefer-dist"
+    - "npm ci"
+    - "cp .env.example .env"
+    - "php artisan key:generate"
+    - "php artisan migrate --force --seed --seeder=ForgeProbeSeeder"

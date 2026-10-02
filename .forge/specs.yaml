@@ -1,0 +1,96 @@
+schema: forge/specs/v2
+SPEC-001:
+  title: Identity, session and MFA
+  covers: [REQ-002, REQ-003, REQ-033]
+  responsibility: Sanctum bearer tokens, lockout, token revocation and expiry, TOTP enrolment, recovery codes, MFA middleware.
+  decisions: [ADR-005]
+  stack_notes: config/sanctum.php expiration + prune-expired schedule; google2fa verifyKeyNewer for replay protection.
+SPEC-002:
+  title: Authorization policy layer and matrix
+  covers: [REQ-004, REQ-005, REQ-031]
+  responsibility: One Policy per entity family, driven by the POLICY-* matrix in domain.yaml; 404 for other-tenant and own_only misses.
+  dependencies: [SPEC-015]
+SPEC-003:
+  title: Ledger core and document sequencing
+  covers: [REQ-006, REQ-007, REQ-036]
+  responsibility: LedgerPostingService, reversal-only correction, AccountingPeriod auto-forward, DocumentSequenceService, DB-level immutability and balance enforcement.
+  decisions: [ADR-004, ADR-008]
+SPEC-004:
+  title: Audit log
+  covers: [REQ-022]
+  responsibility: Append-only audit trail on every financial entity, its own Policy, coverage enforced by an architecture test.
+  dependencies: [SPEC-003]
+SPEC-005:
+  title: Master data, CRM, sales and BOQ
+  covers: [REQ-008, REQ-009]
+  responsibility: Party/Item/BOM, Quotation-Sales Order state machine, feasibility, delivery, BOQ and import staging.
+SPEC-006:
+  title: Inventory, procurement and manufacturing
+  covers: [REQ-010, REQ-011, REQ-013, REQ-038, REQ-039, REQ-046]
+  responsibility: Stock ledger and reservations, PR-PO-GRN-QC, subcontracts, production orders, PO cancellation, settle/dispute, availability board.
+  decisions: [ADR-007]
+SPEC-007:
+  title: Billing, receivables and reporting
+  covers: [REQ-012, REQ-019, REQ-042]
+  responsibility: Invoices, credit approval, retention, payments, opening balances, §10.1 reports, dashboards.
+  dependencies: [SPEC-003]
+SPEC-008:
+  title: Projects, labour and fixed assets
+  covers: [REQ-014, REQ-015, REQ-016]
+  responsibility: Project/Milestone/VO/Defect, resource assignment, asset lifecycle and depreciation.
+  dependencies: [SPEC-003]
+SPEC-009:
+  title: HR and payroll
+  covers: [REQ-017, REQ-031, REQ-040]
+  responsibility: Contracts, timesheets, leave, payroll runs with project cost split, statutory reports, final settlement, employee anonymisation.
+  dependencies: [SPEC-003]
+SPEC-010:
+  title: Approvals, notifications and compliance documents
+  covers: [REQ-018]
+  responsibility: ApprovalLimit maker-checker, Notification dispatch and digests, ComplianceDocument gating.
+SPEC-011:
+  title: M-Pesa Daraja collection
+  covers: [REQ-020, REQ-032]
+  responsibility: STK initiation (pending_external committed first), untrusted callback intake, STK Query confirmation, reconciliation job.
+  dependencies: [SPEC-014]
+  decisions: [ADR-002]
+SPEC-012:
+  title: Upload pipeline
+  covers: [REQ-035]
+  responsibility: Single upload service for BOQ imports and compliance documents — sniff, cap, sanitize, store privately, serve via signed URL.
+SPEC-013:
+  title: KRA eTIMS OSCU integration
+  covers: [REQ-021, REQ-044, REQ-045]
+  responsibility: Device init, code sync, sales/credit-note/item submission via outbox, per-tenant enablement flag.
+  dependencies: [SPEC-014]
+  decisions: [ADR-006]
+SPEC-014:
+  title: Integration and job runtime
+  covers: [REQ-023, REQ-024, REQ-041]
+  responsibility: Idempotency keys, encrypted credential store with key rotation, HTTP client policy, circuit breakers, outbox, dead-letter surfacing, scheduler hardening.
+SPEC-015:
+  title: Tenancy enforcement and data lifecycle
+  covers: [REQ-001, REQ-037, REQ-040]
+  responsibility: TenantScope, TenantContext for non-HTTP execution, tenant-keyed caches, RLS, tenant export and soft-delete lifecycle.
+  decisions: [ADR-003]
+SPEC-016:
+  title: Abuse controls
+  covers: [REQ-034]
+  responsibility: Named rate limiters per tenant/user/operation class, 429 semantics.
+SPEC-017:
+  title: Operations — recovery, observability, residency
+  covers: [NFR-002, NFR-003, NFR-006]
+  responsibility: PITR backups, restore drills, metrics and alerts, /health and /ready, rollback plans, runbooks, hosting-region controls.
+SPEC-018:
+  title: Performance engineering
+  covers: [NFR-001]
+  responsibility: Volume seeder, N+1 guards, index audit, load tests, report async threshold, bundle budget.
+SPEC-019:
+  title: Delivery pipeline and verification gates
+  covers: [NFR-004, NFR-005, NFR-007, NFR-008, NFR-009]
+  responsibility: CI running every Forge dimension, Larastan, audits, OpenAPI contract, migration lint, clean-room README, self-audit command.
+  decisions: [ADR-001]
+SPEC-020:
+  title: Frontend UX, accessibility and onboarding
+  covers: [REQ-043, REQ-047]
+  responsibility: Design-system adherence, axe checks in e2e, Playwright journeys, UAT and walkthrough material.

@@ -1,0 +1,30 @@
+schema: forge/contracts/environment/v2
+variables:
+  APP_KEY:            { required: true,  secret: true,  public: false, min_length: 32 }
+  APP_PREVIOUS_KEYS:  { required: false, secret: true,  public: false }
+  APP_URL:            { required: true,  secret: false, public: true }
+  APP_TIMEZONE:       { required: true,  secret: false, public: false, default: "UTC" }
+  BUSINESS_TIMEZONE:  { required: true,  secret: false, public: false, default: "Africa/Nairobi" }
+  DB_CONNECTION:      { required: true,  secret: false, public: false, default: "pgsql", validate: "^pgsql$" }
+  DB_HOST:            { required: true,  secret: false, public: false }
+  DB_DATABASE:        { required: true,  secret: false, public: false }
+  DB_USERNAME:        { required: true,  secret: false, public: false }
+  DB_PASSWORD:        { required: true,  secret: true,  public: false }
+  SANCTUM_EXPIRATION: { required: true,  secret: false, public: false, default: "720" }
+  CORS_ALLOWED_ORIGINS: { required: true, secret: false, public: false }
+  QUEUE_CONNECTION:   { required: true,  secret: false, public: false, default: "database" }
+  CACHE_STORE:        { required: true,  secret: false, public: false }
+  REDIS_URL:          { required: false, required_when: "CACHE_STORE=redis", secret: true, public: false }
+  FILESYSTEM_DISK:    { required: true,  secret: false, public: false, default: "s3-private" }
+  AWS_ACCESS_KEY_ID:  { required: true,  secret: true,  public: false }
+  AWS_SECRET_ACCESS_KEY: { required: true, secret: true, public: false }
+  AWS_DEFAULT_REGION: { required: true,  secret: false, public: false }
+  AWS_ENDPOINT:       { required: false, secret: false, public: false }
+  MPESA_CALLBACK_HMAC_KEY: { required: true, secret: true, public: false, min_length: 32 }
+  MPESA_ALLOWED_IPS:  { required: true,  secret: false, public: false }
+  VITE_API_BASE_URL:  { required: true,  secret: false, public: true }
+rules:
+  - Per-tenant provider credentials (Daraja consumer key/secret/passkey, eTIMS TIN/branch/serial/cmcKey) are never environment variables; they live encrypted in integration_credentials.
+  - Production boot fails when any required variable is missing (config validation in AppServiceProvider).
+  - Only VITE_* variables may reach the frontend bundle; none of them may be secret.
+  - DB_CONNECTION other than pgsql is refused at boot — row locks and advisory locks are Postgres-specific.

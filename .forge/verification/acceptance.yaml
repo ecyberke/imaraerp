@@ -1,0 +1,63 @@
+schema: forge/verification/acceptance/v2
+ACC-001:
+  requirement: NFR-002
+  type: manual
+  must_demonstrate:
+  - restore of production-like backup to scratch within RTO
+  - data loss within RPO
+  - reconcile-and-repost procedure executed and logged
+  command: scripts/ops/restore-drill.sh (operator-run, result recorded with forge accept)
+ACC-002:
+  requirement: REQ-012
+  type: manual
+  must_demonstrate:
+  - messy simulated client migrated twice
+  - second run restored mid-way and reconciled
+  - trial balance and sub-ledgers agree
+  command: docs/runbooks/migration-rehearsal.md (operator-run)
+ACC-003:
+  requirement: REQ-020
+  type: manual
+  must_demonstrate:
+  - real Daraja sandbox STK push
+  - real callback received
+  - STK Query confirmation
+  - invoice settled once
+  command: Daraja sandbox walkthrough (needs credentials)
+ACC-004:
+  requirement: REQ-044
+  type: manual
+  must_demonstrate:
+  - device initialised against KRA sandbox
+  - sales invoice accepted with receipt signature
+  - credit note accepted
+  command: KRA eTIMS sandbox walkthrough (needs OSCU registration)
+ACC-005:
+  requirement: REQ-047
+  type: manual
+  must_demonstrate:
+  - client completes JRN-001..JRN-004 on staging with their own data
+  - sign-off recorded
+  command: UAT session record
+ACC-006:
+  requirement: NFR-006
+  type: manual
+  must_demonstrate:
+  - database
+  - backups and object storage regions documented and inside Kenya/Africa
+  command: Hosting ADR plus provider console evidence
+ACC-007:
+  requirement: REQ-012
+  type: e2e
+  must_demonstrate:
+  - lead to cash completes through the UI
+  - ledger balanced
+  command: npx playwright test e2e/jrn-001.spec.js
+  test_id: E2E-001
+ACC-008:
+  requirement: NFR-004
+  type: manual
+  must_demonstrate:
+  - independent tester exercised OWASP ASVS L2 scope against staging
+  - no open critical or high findings, or each covered by a dated remediation task
+  command: External penetration test report (record with forge accept ACC-008)

@@ -1,0 +1,30 @@
+# USER-OWNED. Drafted for approval via ADR-001 — Forge never edits this file.
+schema: forge/project/v2
+name: imara-erp
+risk_class: R4            # proposed; R3 is the floor — see ASM-001 / ADR-001
+architecture:
+  style: modular-monolith
+  frontend_backend: separate      # Vue 3 SPA + Laravel JSON API behind an SPA catch-all
+database:
+  engine: postgresql
+  orm: eloquent
+api:
+  style: REST
+  spec: openapi                    # introduced in v1.1.0 (TASK-112); none exists at v1.0
+authentication:
+  strategy: session                # closest enum value: Sanctum opaque DB-backed bearer tokens (not JWT, not cookie SPA). Schema gap — see ASM-004
+  provider: laravel-sanctum (pure bearer-token mode) + TOTP MFA (pragmarx/google2fa)
+deployment:
+  production: TBD — Kenya/Africa-region host, PostgreSQL with WAL/PITR, S3-compatible storage (ASM-005)
+  staging: TBD — separate origin from production (architecture §1.1)
+constraints:
+  multi_tenant_shared_schema: true
+  money_integer_cents_bcmath: true
+  ledger_reversal_only: true
+  postgres_required_for_locking: true
+  no_autonomous_merges: true
+  data_residency_kenya_africa: true
+compliance:
+  gdpr: false     # Kenya Data Protection Act 2019 applies; no schema field for it — recorded in constraints + ASM-006
+  soc2: false
+  hipaa: false
