@@ -18,6 +18,7 @@ class InvoiceController extends Controller
 
         return Invoice::where('tenant_id', $request->user()->tenant_id)
             ->when($request->query('sales_order_id'), fn ($q, $id) => $q->where('sales_order_id', $id))
+            ->when($request->query('party_id'), fn ($q, $id) => $q->where('party_id', $id))
             ->with('lines')->get();
     }
 
